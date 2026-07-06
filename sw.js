@@ -5,15 +5,14 @@
    下の CACHE_NAME の末尾バージョンを必ず上げること。
    例: eshikaku-v0.2.0 → eshikaku-v0.2.1
    ================================================= */
-const CACHE_NAME = "eshikaku-v0.2.0";
+const CACHE_NAME = "eshikaku-v0.2.1";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./icons/app-icon.svg",
   "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/maskable-512.png",
   "./icons/apple-touch-icon.png"
 ];
 
