@@ -13,6 +13,7 @@ let labSource = "camera";
 let labMode = "original";
 let labFrozen = false;
 let labThreshold = 128;
+let labPool = "max";
 let labResolution = 64;
 let labFps = 30;
 let labLastFpsDraw = 0;
@@ -155,6 +156,12 @@ function renderLabOptions() {
       labThreshold = Number(event.target.value);
       $("#labThresholdLabel").textContent = labThreshold;
     };
+    return;
+  }
+  if (labMode === "pool") {
+    box.innerHTML = `<div class="confbar"><button id="labMaxPool" class="${labPool === "max" ? "sel" : ""}">Max Pooling</button><button id="labAveragePool" class="${labPool === "avg" ? "sel" : ""}">Average Pooling</button></div>`;
+    $("#labMaxPool").onclick = () => { labPool = "max"; renderLabOptions(); };
+    $("#labAveragePool").onclick = () => { labPool = "avg"; renderLabOptions(); };
     return;
   }
   if (labMode === "lowres") {
