@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FAF9F4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="E資格ナビ">
+<title>E資格 学習ナビ</title>
+<style>
+:root{
+  --paper:#FAF9F4; --card:#FFFFFF; --ink:#23262C; --sub:#6E727A;
+  --line:#E6E3DA; --shu:#C73E3A; --shu-soft:#FAEDEC;
+  --ai:#2A5A8C; --ai-soft:#EAF1F8; --mist:#F1EFE8;
+  --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--paper); color:var(--ink);
+  font-family:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+  font-size:16px; line-height:1.65;}
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+button{font-family:inherit; font-size:1rem; cursor:pointer;}
+ruby rt{font-size:0.55em; color:var(--sub); letter-spacing:0.05em;}
+pre{background:#20242B; color:#E8EAF0; border-radius:10px; padding:12px 14px;
+  overflow-x:auto; font-family:"Consolas","SF Mono","Menlo",monospace; font-size:0.85rem; line-height:1.6;}
+code{font-family:"Consolas","SF Mono","Menlo",monospace;}
+
+/* ---------- layout ---------- */
+header.app{position:sticky; top:0; z-index:10; background:var(--paper);
+  border-bottom:1px solid var(--line); padding:10px 16px calc(8px);
+  display:flex; align-items:baseline; gap:10px;}
+header.app h1{font-size:1.05rem; margin:0; font-weight:700; letter-spacing:0.02em;}
+header.app .sub{font-size:0.75rem; color:var(--sub);}
+main{max-width:760px; margin:0 auto; padding:16px;}
+@media(min-width:900px){ main{max-width:860px;} }
+
+nav.tabs{position:fixed; bottom:0; left:0; right:0; z-index:20;
+  background:var(--card); border-top:1px solid var(--line);
+  display:flex; justify-content:space-around;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+nav.tabs button{background:none; border:none; color:var(--sub);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-size:0.68rem; padding:4px 10px; border-radius:10px; min-width:58px;}
+nav.tabs button .ic{font-size:1.25rem; line-height:1;}
+nav.tabs button.active{color:var(--ai); font-weight:700; background:var(--ai-soft);}
+
+.view{display:none;} .view.active{display:block; animation:fade .18s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+/* ---------- cards & common ---------- */
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; margin-bottom:14px;}
+.card h2{font-size:0.95rem; margin:0 0 10px; font-weight:700;}
+.eyebrow{font-size:0.7rem; color:var(--sub); letter-spacing:0.12em; margin-bottom:4px;}
+.big{font-size:1.9rem; font-weight:700; line-height:1.2;}
+.row{display:flex; gap:10px; flex-wrap:wrap;}
+.stat{flex:1; min-width:90px; background:var(--mist); border-radius:10px; padding:10px 12px;}
+.stat .v{font-size:1.35rem; font-weight:700;}
+.stat .l{font-size:0.7rem; color:var(--sub);}
+.btn{display:block; width:100%; border:none; border-radius:12px; padding:14px;
+  font-weight:700; margin-top:10px; text-align:center;}
+.btn.primary{background:var(--ai); color:#fff;}
+.btn.ghost{background:var(--card); color:var(--ai); border:1.5px solid var(--ai);}
+.btn.shu{background:var(--shu); color:#fff;}
+.btn.small{padding:9px 12px; font-size:0.85rem; margin-top:8px;}
+.btn:disabled{opacity:0.45; cursor:default;}
+.tag{display:inline-block; font-size:0.68rem; padding:2px 8px; border-radius:999px;
+  background:var(--mist); color:var(--sub); margin-right:6px;}
+.tag.shu{background:var(--shu-soft); color:var(--shu); font-weight:700;}
+.tag.ai{background:var(--ai-soft); color:var(--ai); font-weight:700;}
+.muted{color:var(--sub); font-size:0.82rem;}
+.divider{border:none; border-top:1px dashed var(--line); margin:14px 0;}
+.plist{list-style:none; margin:0; padding:0;}
+.plist li{padding:10px 0; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:flex-start;}
+.plist li:last-child{border-bottom:none;}
+.plist .why{font-size:0.72rem; color:var(--shu); font-weight:700;}
+
+/* ---------- quiz ---------- */
+.choice{display:block; width:100%; text-align:left; margin-top:8px;
+  background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+  padding:12px 14px; line-height:1.5;}
+.choice .abc{display:inline-block; width:1.6em; font-weight:700; color:var(--ai);}
+.choice.sel{border-color:var(--ai); background:var(--ai-soft);}
+.choice.correct{border-color:var(--ai); background:var(--ai-soft); font-weight:700;}
+.choice.wrong{border-color:var(--shu); background:var(--shu-soft);}
+.choice:disabled{cursor:default; opacity:0.9;}
+.confbar{display:flex; gap:8px; margin-top:12px;}
+.confbar button{flex:1; border:1.5px solid var(--line); background:var(--card);
+  border-radius:10px; padding:10px 4px; font-size:0.85rem;}
+.confbar button.sel{border-color:var(--ai); background:var(--ai-soft); font-weight:700;}
+.reasons{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+.reasons button{border:1.5px solid var(--line); background:var(--card);
+  border-radius:999px; padding:7px 12px; font-size:0.78rem;}
+.reasons button.sel{border-color:var(--shu); background:var(--shu-soft); color:var(--shu); font-weight:700;}
+
+/* 赤ペン採点マーク(シグネチャ) */
+.mark{display:flex; justify-content:center; margin:6px 0 2px; height:96px;}
+.mark svg{width:96px; height:96px;}
+.mark path{fill:none; stroke:var(--shu); stroke-width:7; stroke-linecap:round;
+  stroke-dasharray:400; stroke-dashoffset:400; animation:draw .5s ease forwards;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@media(prefers-reduced-motion:reduce){ .mark path{animation:none; stroke-dashoffset:0;} .view.active{animation:none;} }
+
+/* ---------- term / formula cards ---------- */
+.termcard .word{font-size:1.5rem; font-weight:700;}
+.termcard .yaku{font-size:1.05rem; margin-top:2px;}
+.fx{background:var(--mist); border-radius:10px; padding:12px 14px;
+  font-family:"Consolas","Georgia",serif; font-size:1.02rem; overflow-x:auto;}
+.label{font-size:0.7rem; color:var(--sub); font-weight:700; letter-spacing:0.1em; margin:12px 0 3px;}
+.subtabs{display:flex; gap:8px; margin-bottom:14px;}
+.subtabs button{flex:1; border:1.5px solid var(--line); background:var(--card);
+  border-radius:10px; padding:9px; font-size:0.88rem;}
+.subtabs button.active{border-color:var(--ai); background:var(--ai-soft); color:var(--ai); font-weight:700;}
+
+/* ---------- lab ---------- */
+.labwrap{display:flex; flex-direction:column; gap:10px;}
+.labcanvases{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.labcanvases figure{margin:0;}
+.labcanvases canvas{width:100%; border-radius:10px; background:#111; display:block;}
+.labcanvases figcaption{font-size:0.72rem; color:var(--sub); text-align:center; margin-top:3px;}
+.modes{display:flex; flex-wrap:wrap; gap:8px;}
+.modes button{border:1.5px solid var(--line); background:var(--card);
+  border-radius:999px; padding:7px 12px; font-size:0.8rem;}
+.modes button.sel{border-color:var(--ai); background:var(--ai-soft); color:var(--ai); font-weight:700;}
+input[type=range]{width:100%;}
+video{display:none;}
+
+/* ---------- stats ---------- */
+.bar{height:10px; border-radius:999px; background:var(--mist); overflow:hidden; margin:4px 0 10px;}
+.bar>span{display:block; height:100%; background:var(--ai); border-radius:999px;}
+.bar>span.low{background:var(--shu);}
+textarea{width:100%; min-height:140px; border:1.5px solid var(--line); border-radius:10px;
+  padding:10px; font-family:"Consolas",monospace; font-size:0.8rem;}
+.toast{position:fixed; left:50%; bottom:90px; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px;
+  font-size:0.85rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;}
+.toast.show{opacity:0.95;}
+details{margin-top:10px;} summary{cursor:pointer; font-weight:700; font-size:0.88rem;}
+</style>
+</head>
+<body>
+<header class="app"><h1>E資格 学習ナビ</h1><span class="sub" id="hdrDate"></span></header>
+<main>
+  <section id="view-home" class="view active"></section>
+  <section id="view-study" class="view"></section>
+  <section id="view-quiz" class="view"></section>
+  <section id="view-cards" class="view"></section>
+  <section id="view-lab" class="view"></section>
+  <section id="view-stats" class="view"></section>
+</main>
+<nav class="tabs">
+  <button data-nav="home" class="active"><span class="ic">🏠</span>ホーム</button>
+  <button data-nav="study"><span class="ic">✏️</span>学習</button>
+  <button data-nav="cards"><span class="ic">📇</span>カード</button>
+  <button data-nav="lab"><span class="ic">📷</span>ラボ</button>
+  <button data-nav="stats"><span class="ic">📊</span>記録</button>
+</nav>
+<div class="toast" id="toast"></div>
+<video id="labVideo" playsinline muted></video>
+<script>
+"use strict";
+/* =========================================================
+   E資格 学習ナビ v0.1  (単一ファイル / オフライン / IndexedDB)
+   ========================================================= */
+
+/* ---------- IndexedDB ---------- */
+const DB_NAME="eshikaku_v1", DB_VER=1;
+let db;
+function openDB(){return new Promise((res,rej)=>{
+  const rq=indexedDB.open(DB_NAME,DB_VER);
+  rq.onupgradeneeded=e=>{
+    const d=e.target.result;
+    if(!d.objectStoreNames.contains("questions")) d.createObjectStore("questions",{keyPath:"id"});
+    if(!d.objectStoreNames.contains("logs")) d.createObjectStore("logs",{keyPath:"answerId"});
+    if(!d.objectStoreNames.contains("srs")) d.createObjectStore("srs",{keyPath:"questionId"});
+    if(!d.objectStoreNames.contains("meta")) d.createObjectStore("meta",{keyPath:"key"});
+  };
+  rq.onsuccess=e=>{db=e.target.result; res(db);};
+  rq.onerror=()=>rej(rq.error);
+});}
+function tx(store,mode,fn){return new Promise((res,rej)=>{
+  const t=db.transaction(store,mode), s=t.objectStore(store);
+  const out=fn(s);
+  t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);
+  t.onerror=()=>rej(t.error);
+});}
+function put(store,val){return tx(store,"readwrite",s=>s.put(val));}
+function getAll(store){return new Promise((res,rej)=>{
+  const t=db.transaction(store,"readonly"), rq=t.objectStore(store).getAll();
+  rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);
+});}
+function getOne(store,key){return new Promise((res,rej)=>{
+  const t=db.transaction(store,"readonly"), rq=t.objectStore(store).get(key);
+  rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error);
+});}
+function clearStore(store){return tx(store,"readwrite",s=>s.clear());}
+
+/* ---------- 用語カード(組込) ---------- */
+const TERMS=[
+ {en:"Convolution",kana:"コンヴォリューション",ja:"畳み込み",desc:"小さなフィルタを画像上で動かし、輪郭や模様などの特徴を取り出す処理"},
+ {en:"CNN",kana:"シー・エヌ・エヌ",ja:"畳み込みニューラルネットワーク",full:"Convolutional Neural Network(コンヴォリューショナル・ニューラル・ネットワーク)",desc:"画像の輪郭や模様を段階的に見つけることが得意なモデル"},
+ {en:"Kernel",kana:"カーネル",ja:"フィルタ",desc:"畳み込みで使う小さな数値の窓。3×3などのサイズを持つ"},
+ {en:"Stride",kana:"ストライド",ja:"移動幅",desc:"フィルタを何マスずつ動かすか"},
+ {en:"Padding",kana:"パディング",ja:"余白埋め",desc:"入力画像の周囲に追加する余白。端の情報を保ち出力サイズを調整する"},
+ {en:"Feature Map",kana:"フィーチャー・マップ",ja:"特徴マップ",desc:"畳み込みの出力。どこにどんな特徴があるかを表す"},
+ {en:"Pooling",kana:"プーリング",ja:"集約",desc:"領域ごとに代表値(最大や平均)を取り、サイズを縮小する処理"},
+ {en:"ReLU",kana:"レルー",ja:"正規化線形ユニット",full:"Rectified Linear Unit(レクティファイド・リニア・ユニット)",desc:"負の値をゼロにし、正の値はそのまま通す活性化関数"},
+ {en:"Edge Detection",kana:"エッジ・ディテクション",ja:"輪郭検出",desc:"明るさが急に変わる場所(境界)を見つける処理"},
+ {en:"Gradient Descent",kana:"グラディエント・ディセント",ja:"勾配降下法",desc:"損失が小さくなる方向へパラメータを少しずつ動かす最適化法"},
+ {en:"Cross Entropy Loss",kana:"クロス・エントロピー・ロス",ja:"交差エントロピー損失",desc:"分類の予測確率が正解からどれだけ外れているかを測る損失"},
+ {en:"Softmax",kana:"ソフトマックス",ja:"ソフトマックス関数",desc:"出力を合計1の確率の形に変換する関数"},
+ {en:"Data Augmentation",kana:"データ・オーグメンテーション",ja:"データ拡張",desc:"回転・反転・明るさ変更などで学習データを水増しし汎化を高める"},
+ {en:"Overfitting",kana:"オーバーフィッティング",ja:"過学習",desc:"学習データに合わせすぎて、新しいデータに弱くなる状態"}
+];
+
+/* ---------- 数式カード(組込) ---------- */
+const FORMULAS=[
+ {name:"勾配降下法",fx:"θ ← θ − η∇L(θ)",
+  yomi:"シータを、シータから、イータ掛けるエル・オブ・シータの勾配を引いた値に更新する",
+  imi:"損失が小さくなる方向へ、少しずつパラメータを動かす",
+  oboe:"坂を下る向きへ、一歩だけ動く",
+  rei:"θ=2.0、η=0.1、勾配=4.0 のとき → θ = 2.0 − 0.1×4.0 = 1.6"},
+ {name:"畳み込み出力サイズ",fx:"出力 = floor((入力 − カーネル + 2×パディング) / ストライド) + 1",
+  yomi:"出力サイズは、入力サイズからカーネルサイズを引き、パディングを二倍したものを足し、ストライドで割って切り捨て、最後に一を足します",
+  imi:"フィルタが入力の上を何回置けるかを数えている",
+  oboe:"端を足して、窓を引いて、歩幅で割って、一つ足す",
+  rei:"入力32、カーネル3、Padding1、Stride2 → (32−3+2)/2=15.5 → 切り捨て15 → +1 = 16"},
+ {name:"交差エントロピー損失",fx:"L = − Σ t_k log(y_k)",
+  yomi:"エルは、マイナス、シグマ、ティー・ケー掛けるログ・ワイ・ケー",
+  imi:"正解クラスの予測確率が低いほど、損失が大きくなる",
+  oboe:"正解の確率だけを見て、低いほど罰する",
+  rei:"正解クラスの予測確率が0.8 → L=−log(0.8)≒0.22。0.1なら L≒2.30 と大きくなる"},
+ {name:"ソフトマックス関数",fx:"y_k = exp(a_k) / Σ exp(a_i)",
+  yomi:"ワイ・ケーは、エクスポネンシャル・エー・ケーを、全クラスのエクスポネンシャルの合計で割ったもの",
+  imi:"出力を合計1の確率に変換する。大きい値ほど高い確率になる",
+  oboe:"指数で持ち上げて、合計で割る",
+  rei:"a=(2,1,0) → exp=(7.39,2.72,1.00) → 合計11.11 → y≒(0.67,0.24,0.09)"}
+];
+
+/* ---------- サンプル問題(後工程で差し替え・追加) ---------- */
+const SEED_QUESTIONS=[
+ {id:"q001",category:"深層学習",topic:"Padding",difficulty:"基礎",type:"choice",
+  question:"Paddingとは何ですか?",
+  choices:["フィルタを移動させる幅","入力画像の周囲に追加する余白","フィルタの大きさ","出力チャンネル数"],
+  answer:1,explanation:"Padding(パディング/余白埋め)は入力の周囲に余白を追加する処理です。端の情報を保ち、出力サイズを調整できます。",
+  terms:["Padding"],labTag:""},
+ {id:"q002",category:"深層学習",topic:"Stride",difficulty:"基礎",type:"choice",
+  question:"Strideが2であるとは、どういう意味ですか?",
+  choices:["フィルタを2マスずつ動かす","フィルタの大きさが2×2","画像の色が2種類","層が2つある"],
+  answer:0,explanation:"Stride(ストライド/移動幅)はフィルタを動かす歩幅です。2なら1マス飛ばしで動くため、出力サイズは小さくなります。",
+  terms:["Stride"]},
+ {id:"q003",category:"深層学習",topic:"出力サイズ計算",difficulty:"標準",type:"formula",
+  question:"入力サイズ8、カーネル3、Padding0、Stride2のとき、出力サイズはいくつですか?",
+  choices:["2","3","4","6"],
+  answer:1,explanation:"(8−3+0)/2=2.5 → 切り捨て2 → +1 = 3。「端を足して、窓を引いて、歩幅で割って、一つ足す」。",
+  formulas:["畳み込み出力サイズ"],terms:["Stride","Padding"]},
+ {id:"q004",category:"深層学習",topic:"出力サイズ計算",difficulty:"標準",type:"formula",
+  question:"入力サイズ32、カーネル3、Padding1、Stride2の畳み込み後の出力サイズは?",
+  choices:["15","16","17","31"],
+  answer:1,explanation:"(32−3+2×1)/2 = 31/2 = 15.5 → 切り捨て15 → +1 = 16。Paddingは2倍して足す点に注意。",
+  formulas:["畳み込み出力サイズ"],terms:["Padding"]},
+ {id:"q005",category:"深層学習",topic:"nn.Linearの形状",difficulty:"標準",type:"code",
+  question:"y.shapeとして正しいものはどれですか?",
+  code:"import torch\nimport torch.nn as nn\nx = torch.randn(32, 128)\nlayer = nn.Linear(128, 10)\ny = layer(x)\nprint(y.shape)",
+  choices:["(128, 10)","(32, 128)","(32, 10)","(10, 32)"],
+  answer:2,explanation:"入力xは「32件のデータ × 128個の特徴量」。nn.Linear(128,10)は最後の次元を128→10へ変換するため、出力は(32, 10)です。",
+  terms:[]},
+ {id:"q006",category:"深層学習",topic:"Conv2dとStride",difficulty:"標準",type:"code",
+  question:"stride=2 は、この層の動きにどう影響しますか?",
+  code:"nn.Conv2d(\n    in_channels=3,\n    out_channels=16,\n    kernel_size=3,\n    stride=2,\n    padding=1\n)",
+  choices:["フィルタを2マスずつ動かし、出力の縦横が約半分になる","チャンネル数が2倍になる","カーネルが2×2になる","学習率が2倍になる"],
+  answer:0,explanation:"strideはフィルタの移動幅。2にすると出力の空間サイズが約1/2になり、ダウンサンプリングの役割を持ちます。",
+  terms:["Stride"]},
+ {id:"q007",category:"深層学習",topic:"活性化関数",difficulty:"基礎",type:"term",
+  question:"ReLU(レルー)の動きとして正しいものはどれですか?",
+  choices:["負の値をゼロにし、正の値はそのまま通す","出力を合計1の確率にする","入力を0〜1に圧縮する","入力を平均0に正規化する"],
+  answer:0,explanation:"ReLU = Rectified Linear Unit(正規化線形ユニット)。max(0, x)で、負をゼロに、正をそのまま通します。勾配消失を起こしにくいのが利点。",
+  terms:["ReLU"]},
+ {id:"q008",category:"深層学習",topic:"損失関数",difficulty:"基礎",type:"term",
+  question:"Cross Entropy Loss(交差エントロピー損失)が測っているものは?",
+  choices:["画像の解像度","予測確率と正解のずれ","パラメータの数","学習にかかった時間"],
+  answer:1,explanation:"分類問題で、正解クラスに対する予測確率が低いほど大きくなる損失です。−Σ t_k log(y_k)。",
+  terms:["Cross Entropy Loss"],formulas:["交差エントロピー損失"]},
+ {id:"q009",category:"画像解析",topic:"エッジ検出",difficulty:"基礎",type:"lab",
+  question:"Sobelフィルタで本の文字や机の縁が目立つようになりました。最も近い説明はどれですか?",
+  choices:["物体の意味を理解している","色名を識別している","画素値の局所的な変化に反応している","画像を高解像度化している"],
+  answer:2,explanation:"Sobelフィルタは隣り合う画素の明るさの差(勾配)を計算します。境界=明るさが急に変わる場所が強調されます。意味理解ではありません。",
+  terms:["Edge Detection","Convolution"],labTag:"sobel"},
+ {id:"q010",category:"画像解析",topic:"プーリング",difficulty:"基礎",type:"lab",
+  question:"Max Poolingの説明として正しいものはどれですか?",
+  choices:["領域内の最大値を代表として残す","領域内の値をすべて足す","画像を回転させる","色を反転させる"],
+  answer:0,explanation:"Max Poolingは小領域ごとに最大値を取り、サイズを縮小しつつ強い特徴を残します。Average Poolingは平均値を取ります。",
+  terms:["Pooling"],labTag:"pool"},
+ {id:"q011",category:"機械学習",topic:"過学習",difficulty:"基礎",type:"choice",
+  question:"過学習(Overfitting)への対策として適切でないものはどれですか?",
+  choices:["データ拡張を行う","Dropoutを使う","正則化を加える","学習データへの正答率だけを最大化する"],
+  answer:3,explanation:"過学習は学習データに合わせすぎた状態。学習データの正答率だけを追うと悪化します。データ拡張・Dropout・正則化は代表的な対策です。",
+  terms:["Overfitting","Data Augmentation"]},
+ {id:"q012",category:"法律・倫理",topic:"個人情報",difficulty:"基礎",type:"choice",
+  question:"個人情報保護法における「個人情報」の説明として最も適切なものは?",
+  choices:["企業の売上データすべて","生存する個人を識別できる情報","匿名加工が済んだ統計情報","公開されていない情報のみ"],
+  answer:1,explanation:"個人情報は「生存する個人に関する情報で、特定の個人を識別できるもの」。公開・非公開は要件ではありません。",
+  terms:[]}
+];
+
+/* ---------- 誤答原因 ---------- */
+const ERROR_REASONS=[
+ "用語の意味が分からない","英語用語が読めない・思い出せない","数式の意味が分からない",
+ "数式の計算を間違えた","似た概念と混同した","コードの形が読めなかった",
+ "問題文を読み違えた","選択肢で迷った","たまたま知識が抜けていた"];
+
+/* ---------- 間隔反復エンジン ---------- */
+const DAY=86400000;
+function today0(){const d=new Date(); d.setHours(0,0,0,0); return d.getTime();}
+function fmtDate(ts){const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()}`;}
+
+function nextReview(srs,isCorrect,conf){
+  // conf: 0=低い 1=普通 2=高い
+  const s=srs||{streak:0,lapses:0,overconfident:0,stage:0};
+  let days;
+  if(!isCorrect){
+    s.streak=0; s.lapses=(s.lapses||0)+1; s.stage=0;
+    if(conf===2){ s.overconfident=(s.overconfident||0)+1; days=1; } // 自信あり誤答=最優先・翌日
+    else days=1;
+  }else{
+    s.streak=(s.streak||0)+1; s.lapses=0;
+    if(conf===0) days=3;            // 正解・自信低い
+    else if(conf===1) days=7;       // 正解・普通
+    else days=(s.streak>=3?30:14);  // 正解・高い(連続で30日へ)
+    s.stage=Math.min((s.stage||0)+1,6);
+  }
+  s.due=today0()+days*DAY;
+  s.lastCorrect=isCorrect; s.lastConf=conf; s.lastAt=Date.now();
+  return s;
+}
+function priorityInfo(srs){
+  // 優先度スコアと表示理由
+  if(!srs) return {score:10,why:"新規"};
+  const overdue=Math.max(0,Math.floor((today0()-srs.due)/DAY));
+  if(srs.lastCorrect===false&&srs.lastConf===2) return {score:100+overdue,why:"自信ありで誤答"};
+  if((srs.lapses||0)>=2) return {score:90+overdue,why:`${srs.lapses}回連続で誤答`};
+  if(overdue>=1) return {score:60+overdue,why:`復習期限を${overdue}日超過`};
+  if(srs.lastCorrect===true&&srs.lastConf===0) return {score:50,why:"正解したが自信度が低い"};
+  return {score:20,why:"定着確認"};
+}
+</script>
+<script>
+"use strict";
+/* ---------- 共通UI ---------- */
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+function esc(t){return String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove("show"),2000);}
+function nav(view){
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  $("#view-"+view).classList.add("active");
+  $$("nav.tabs button").forEach(b=>b.classList.toggle("active",b.dataset.nav===view));
+  if(view==="home") renderHome();
+  if(view==="study") renderStudy();
+  if(view==="cards") renderCards();
+  if(view==="lab") renderLab();
+  if(view==="stats") renderStats();
+  if(view!=="lab") stopCamera();
+  window.scrollTo(0,0);
+}
+$$("nav.tabs button").forEach(b=>b.onclick=()=>nav(b.dataset.nav));
+
+/* ---------- データ取得ヘルパ ---------- */
+let QUESTIONS=[], SRS={}, LOGS=[];
+async function loadAll(){
+  QUESTIONS=await getAll("questions");
+  const s=await getAll("srs"); SRS={}; s.forEach(x=>SRS[x.questionId]=x);
+  LOGS=await getAll("logs");
+}
+function dueQuestions(){
+  const t0=today0()+DAY; // 今日中が期限のもの
+  return QUESTIONS.filter(q=>SRS[q.id]&&SRS[q.id].due<t0)
+    .sort((a,b)=>priorityInfo(SRS[b.id]).score-priorityInfo(SRS[a.id]).score);
+}
+function newQuestions(){return QUESTIONS.filter(q=>!SRS[q.id]);}
+function streakDays(){
+  const days=new Set(LOGS.map(l=>{const d=new Date(l.answeredAt); d.setHours(0,0,0,0); return d.getTime();}));
+  let n=0, t=today0();
+  if(!days.has(t)) t-=DAY; // 今日未学習なら昨日から数える
+  while(days.has(t)){n++; t-=DAY;}
+  return n;
+}
+function accuracy(logs){if(!logs.length)return null; return Math.round(100*logs.filter(l=>l.isCorrect).length/logs.length);}
+
+/* ---------- ホーム ---------- */
+function renderHome(){
+  const due=dueQuestions(), news=newQuestions(), acc=accuracy(LOGS), st=streakDays();
+  const overdue=QUESTIONS.filter(q=>SRS[q.id]&&SRS[q.id].due<today0()).length;
+  const pri=due.slice(0,3).map(q=>{
+    const p=priorityInfo(SRS[q.id]);
+    return `<li><div><b>${esc(q.topic)}</b><div class="why">${esc(p.why)}</div></div></li>`;
+  }).join("")||`<li><span class="muted">今日の復習はありません。学習タブから新しい問題へ。</span></li>`;
+  $("#view-home").innerHTML=`
+  <div class="card">
+    <div class="eyebrow">きょうの状態</div>
+    <div class="row">
+      <div class="stat"><div class="v">${due.length}<small>問</small></div><div class="l">今日の復習</div></div>
+      <div class="stat"><div class="v">${overdue}<small>問</small></div><div class="l">期限超過</div></div>
+      <div class="stat"><div class="v">${acc===null?"–":acc+"%"}</div><div class="l">総合正答率</div></div>
+      <div class="stat"><div class="v">${st}<small>日</small></div><div class="l">継続学習</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>優先して復習</h2>
+    <ul class="plist">${pri}</ul>
+    <button class="btn primary" id="btnTodayReview" ${due.length?"":"disabled"}>今日の復習を始める(${due.length}問)</button>
+    <button class="btn ghost" id="btnNew" ${news.length?"":"disabled"}>新しい問題(${news.length}問)</button>
+    <button class="btn ghost" id="btnLabGo">カメラで画像解析</button>
+  </div>`;
+  $("#btnTodayReview")&&($("#btnTodayReview").onclick=()=>startSession(due,"今日の復習"));
+  $("#btnNew").onclick=()=>startSession(shuffle(news).slice(0,10),"新規学習");
+  $("#btnLabGo").onclick=()=>nav("lab");
+}
+function shuffle(a){a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a;}
+
+/* ---------- 学習メニュー ---------- */
+function renderStudy(){
+  const cats=[...new Set(QUESTIONS.map(q=>q.category))];
+  const weak=QUESTIONS.filter(q=>SRS[q.id]&&(SRS[q.id].lapses>=1||(SRS[q.id].lastCorrect===false)));
+  const codes=QUESTIONS.filter(q=>q.type==="code");
+  const fxs=QUESTIONS.filter(q=>q.type==="formula");
+  $("#view-study").innerHTML=`
+  <div class="card"><h2>ドリル</h2>
+    <button class="btn primary" id="stWeak" ${weak.length?"":"disabled"}>弱点ドリル(${weak.length}問)</button>
+    <button class="btn ghost" id="stCode" ${codes.length?"":"disabled"}>コード読解(${codes.length}問)</button>
+    <button class="btn ghost" id="stFx" ${fxs.length?"":"disabled"}>数式問題(${fxs.length}問)</button>
+    <button class="btn ghost" id="stAll">全問からランダム10問</button>
+  </div>
+  <div class="card"><h2>分野別</h2>
+    ${cats.map(c=>{
+      const qs=QUESTIONS.filter(q=>q.category===c);
+      const lg=LOGS.filter(l=>qs.some(q=>q.id===l.questionId));
+      const ac=accuracy(lg);
+      return `<button class="btn ghost small" data-cat="${esc(c)}">${esc(c)}(${qs.length}問${ac===null?"":" / 正答率"+ac+"%"})</button>`;
+    }).join("")}
+  </div>`;
+  $("#stWeak").onclick=()=>startSession(shuffle(weak),"弱点ドリル");
+  $("#stCode").onclick=()=>startSession(shuffle(codes),"コード読解");
+  $("#stFx").onclick=()=>startSession(shuffle(fxs),"数式問題");
+  $("#stAll").onclick=()=>startSession(shuffle(QUESTIONS).slice(0,10),"ランダム演習");
+  $$("#view-study [data-cat]").forEach(b=>b.onclick=()=>startSession(shuffle(QUESTIONS.filter(q=>q.category===b.dataset.cat)),b.dataset.cat));
+}
+
+/* ---------- 出題セッション ---------- */
+let session=null;
+function startSession(list,title){
+  if(!list.length){toast("対象の問題がありません"); return;}
+  session={list,title,idx:0,correct:0,startAt:Date.now()};
+  nav("quiz"); renderQuestion();
+}
+function renderQuestion(){
+  const q=session.list[session.idx];
+  session.qStart=Date.now(); session.sel=null; session.conf=null;
+  $("#view-quiz").innerHTML=`
+  <div class="muted" style="margin-bottom:8px">${esc(session.title)} ${session.idx+1} / ${session.list.length}</div>
+  <div class="card">
+    <div><span class="tag">${esc(q.category)}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.difficulty||"")}</span></div>
+    ${q.code?`<pre>${esc(q.code)}</pre>`:""}
+    <p style="font-weight:700; font-size:1.05rem">Q. ${esc(q.question)}</p>
+    <div id="choices">${q.choices.map((c,i)=>
+      `<button class="choice" data-i="${i}"><span class="abc">${"ABCD"[i]}</span>${esc(c)}</button>`).join("")}</div>
+    <div class="label">自信度</div>
+    <div class="confbar" id="confbar">
+      <button data-c="0">低い</button><button data-c="1">普通</button><button data-c="2">高い</button>
+    </div>
+    <button class="btn primary" id="btnGrade" disabled>採点する</button>
+    <button class="btn ghost small" id="btnQuit">中断してホームへ</button>
+  </div>`;
+  $$("#choices .choice").forEach(b=>b.onclick=()=>{
+    $$("#choices .choice").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel"); session.sel=+b.dataset.i; updateGradeBtn();});
+  $$("#confbar button").forEach(b=>b.onclick=()=>{
+    $$("#confbar button").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel"); session.conf=+b.dataset.c; updateGradeBtn();});
+  $("#btnGrade").onclick=grade;
+  $("#btnQuit").onclick=()=>nav("home");
+}
+function updateGradeBtn(){$("#btnGrade").disabled=!(session.sel!==null&&session.conf!==null);}
+
+async function grade(){
+  const q=session.list[session.idx];
+  const isCorrect=session.sel===q.answer;
+  if(isCorrect) session.correct++;
+  const timeSec=Math.round((Date.now()-session.qStart)/1000);
+  const srs=nextReview(SRS[q.id],isCorrect,session.conf);
+  srs.questionId=q.id; SRS[q.id]=srs; await put("srs",srs);
+  const log={answerId:"a"+Date.now()+Math.random().toString(36).slice(2,6),
+    questionId:q.id,answeredAt:Date.now(),isCorrect,selectedAnswer:session.sel,
+    confidence:session.conf,answerTimeSeconds:timeSec,errorReason:null,
+    repetitionStage:srs.stage,sourceDevice:/Mobi/.test(navigator.userAgent)?"スマホ":"PC"};
+  LOGS.push(log); await put("logs",log); session.lastLog=log;
+  renderFeedback(q,isCorrect);
+}
+const MARK_O='<svg viewBox="0 0 100 100"><path d="M50 12 C 27 12, 12 30, 12 50 C 12 72, 30 88, 50 88 C 72 88, 88 71, 88 50 C 88 30, 72 14, 52 13"/></svg>';
+const MARK_X='<svg viewBox="0 0 100 100"><path d="M20 20 L80 80 M80 20 L20 80"/></svg>';
+
+function renderFeedback(q,isCorrect){
+  const termCards=(q.terms||[]).map(name=>{
+    const t=TERMS.find(x=>x.en===name); if(!t) return "";
+    return `<hr class="divider"><div class="termcard">
+      <div class="word"><ruby>${esc(t.en)}<rt>${esc(t.kana)}</rt></ruby></div>
+      ${t.full?`<div class="muted">${esc(t.full)}</div>`:""}
+      <div class="yaku">${esc(t.ja)}</div><div class="muted">${esc(t.desc)}</div></div>`;
+  }).join("");
+  const fxCards=(q.formulas||[]).map(name=>{
+    const f=FORMULAS.find(x=>x.name===name); if(!f) return "";
+    return `<hr class="divider"><div class="fx">${esc(f.fx)}</div>
+      <div class="label">読み方</div><div>${esc(f.yomi)}</div>
+      <div class="label">覚え方</div><div>${esc(f.oboe)}</div>`;
+  }).join("");
+  $("#view-quiz").innerHTML=`
+  <div class="muted" style="margin-bottom:8px">${esc(session.title)} ${session.idx+1} / ${session.list.length}</div>
+  <div class="card">
+    <div class="mark">${isCorrect?MARK_O:MARK_X}</div>
+    <div style="text-align:center; font-weight:700; color:var(--shu)">${isCorrect?"正解":"不正解"}</div>
+    <p style="font-weight:700">Q. ${esc(q.question)}</p>
+    ${q.code?`<pre>${esc(q.code)}</pre>`:""}
+    <div>${q.choices.map((c,i)=>`<button class="choice ${i===q.answer?"correct":(i===session.sel?"wrong":"")}" disabled>
+      <span class="abc">${"ABCD"[i]}</span>${esc(c)}</button>`).join("")}</div>
+    <div class="label">解説</div><div>${esc(q.explanation)}</div>
+    ${termCards}${fxCards}
+    ${!isCorrect?`<div class="label">誤答の原因(次回の出し方に反映)</div>
+      <div class="reasons" id="reasons">${ERROR_REASONS.map((r,i)=>`<button data-r="${i}">${esc(r)}</button>`).join("")}</div>`:""}
+    <div class="muted" style="margin-top:12px">次回復習:${fmtDate(SRS[q.id].due)}</div>
+    <button class="btn ghost small" id="btnGpt">GPT相談文をコピー</button>
+    <button class="btn primary" id="btnNext">${session.idx+1<session.list.length?"次の問題へ":"結果を見る"}</button>
+  </div>`;
+  $$("#reasons button").forEach(b=>b.onclick=async()=>{
+    $$("#reasons button").forEach(x=>x.classList.remove("sel")); b.classList.add("sel");
+    session.lastLog.errorReason=ERROR_REASONS[+b.dataset.r]; await put("logs",session.lastLog);});
+  $("#btnGpt").onclick=()=>copyGptPrompt(q,isCorrect);
+  $("#btnNext").onclick=()=>{
+    session.idx++;
+    if(session.idx<session.list.length) renderQuestion(); else renderResult();
+  };
+}
+function renderResult(){
+  const n=session.list.length, c=session.correct;
+  $("#view-quiz").innerHTML=`
+  <div class="card" style="text-align:center">
+    <div class="eyebrow">${esc(session.title)} おつかれさまでした</div>
+    <div class="big">${c} / ${n} 問正解</div>
+    <div class="muted">誤答した問題は明日以降の復習に自動登録されました</div>
+    <button class="btn primary" id="rHome">ホームへ戻る</button>
+  </div>`;
+  $("#rHome").onclick=()=>nav("home");
+}
+
+/* ---------- GPT相談文 ---------- */
+function copyGptPrompt(q,isCorrect){
+  const conf=["低い","普通","高い"][session.conf];
+  const reason=session.lastLog.errorReason||"(未選択)";
+  const text=`E資格の復習です。
+【分野】
+${q.category}:${q.topic}
+【問題】
+${q.question}
+${q.code?"\n【コード】\n"+q.code+"\n":""}【選択肢】
+${q.choices.map((c,i)=>"ABCD"[i]+". "+c).join("\n")}
+【私の回答】
+${"ABCD"[session.sel]}. ${q.choices[session.sel]}
+【正答】
+${"ABCD"[q.answer]}. ${q.choices[q.answer]}
+【結果】${isCorrect?"正解":"不正解"} / 【自信度】${conf}
+【誤答原因】
+${isCorrect?"—":reason}
+以下の順で説明してください。
+1. 用語の原語・発音用フリガナ・日本語訳
+2. 数式があれば読み方
+3. 考え方の手順
+4. 間違えやすいポイント
+5. 類題を2問`;
+  navigator.clipboard.writeText(text).then(()=>toast("相談文をコピーしました"))
+    .catch(()=>{prompt("コピーしてください",text);});
+}
+
+/* ---------- カード(用語・数式) ---------- */
+let cardTab="term";
+function renderCards(){
+  $("#view-cards").innerHTML=`
+  <div class="subtabs">
+    <button id="ctTerm" class="${cardTab==="term"?"active":""}">用語カード</button>
+    <button id="ctFx" class="${cardTab==="fx"?"active":""}">数式カード</button>
+  </div>
+  <div id="cardList"></div>`;
+  $("#ctTerm").onclick=()=>{cardTab="term"; renderCards();};
+  $("#ctFx").onclick=()=>{cardTab="fx"; renderCards();};
+  const el=$("#cardList");
+  if(cardTab==="term"){
+    el.innerHTML=TERMS.map(t=>`
+    <div class="card termcard">
+      <div class="word"><ruby>${esc(t.en)}<rt>${esc(t.kana)}</rt></ruby></div>
+      ${t.full?`<div class="muted">${esc(t.full)}</div>`:""}
+      <div class="yaku">${esc(t.ja)}</div>
+      <div class="muted">${esc(t.desc)}</div>
+    </div>`).join("");
+  }else{
+    el.innerHTML=FORMULAS.map(f=>`
+    <div class="card">
+      <h2>${esc(f.name)}</h2>
+      <div class="fx">${esc(f.fx)}</div>
+      <div class="label">読み方</div><div>${esc(f.yomi)}</div>
+      <div class="label">意味</div><div>${esc(f.imi)}</div>
+      <div class="label">覚え方</div><div>「${esc(f.oboe)}」</div>
+      <div class="label">具体例</div><div class="muted">${esc(f.rei)}</div>
+    </div>`).join("");
+  }
+}
+</script>
+<script>
+"use strict";
+/* ---------- カメラ画像解析ラボ ---------- */
+let labStream=null, labMode="original", labRAF=null, labThresh=128, labPool="max";
+const LAB_MODES=[
+ {id:"original",label:"元画像"},{id:"rgb",label:"RGB分解"},
+ {id:"gray",label:"グレースケール"},{id:"binary",label:"二値化"},
+ {id:"blur",label:"ぼかし"},{id:"sobel",label:"輪郭検出(Sobel)"},
+ {id:"lowres",label:"解像度比較"},{id:"pool",label:"プーリング比較"}];
+const LAB_THEME={
+ original:"カメラ映像は数値の配列(高さ×幅×RGB)としてアプリに届いています。",
+ rgb:"1枚のカラー画像はR・G・Bの3チャンネルの重なり。CNNの入力もこの形(3×H×W)です。",
+ gray:"色を捨てて明るさだけにする前処理。計算量が減り、形の情報に集中できます。",
+ binary:"閾値より明るいか暗いかで白黒に分ける前処理。スライダで閾値を動かして変化を見てください。",
+ blur:"周囲の画素と平均する平滑化。細部やノイズが弱まります。",
+ sobel:"Sobel(ソーベル)フィルタ:左右・上下の明るさの差(勾配)で境界を強調する畳み込みです。",
+ lowres:"入力サイズを落とすと何の情報が失われるかを体感します(224/64/32相当)。",
+ pool:"Max Pooling(最大値)とAverage Pooling(平均値)の見え方の違いを比較します。"};
+
+function renderLab(){
+  $("#view-lab").innerHTML=`
+  <div class="card labwrap">
+    <h2>画像解析ラボ</h2>
+    <div class="muted">カメラ映像は端末内でのみ処理します。自動保存・送信はしません。</div>
+    <button class="btn primary" id="labStart">カメラを起動</button>
+    <div class="modes" id="labModes">${LAB_MODES.map(m=>
+      `<button data-m="${m.id}" class="${m.id===labMode?"sel":""}">${m.label}</button>`).join("")}</div>
+    <div id="labCtl"></div>
+    <div class="labcanvases" id="labCv">
+      <figure><canvas id="cvOrig" width="320" height="240"></canvas><figcaption>元画像</figcaption></figure>
+      <figure><canvas id="cvProc" width="320" height="240"></canvas><figcaption id="cvProcCap">処理後</figcaption></figure>
+    </div>
+    <div class="card" style="margin:0; background:var(--mist); border:none">
+      <div class="eyebrow">今日のテーマ</div>
+      <div id="labTheme">${LAB_THEME[labMode]}</div>
+    </div>
+    <button class="btn shu" id="labQuiz">この実験の確認問題を解く</button>
+  </div>`;
+  $("#labStart").onclick=startCamera;
+  $$("#labModes button").forEach(b=>b.onclick=()=>{
+    labMode=b.dataset.m;
+    $$("#labModes button").forEach(x=>x.classList.toggle("sel",x===b));
+    $("#labTheme").textContent=LAB_THEME[labMode];
+    $("#cvProcCap").textContent=LAB_MODES.find(m=>m.id===labMode).label;
+    renderLabCtl();
+  });
+  $("#labQuiz").onclick=()=>{
+    const tag=(labMode==="pool")?"pool":(labMode==="sobel"?"sobel":"");
+    let qs=QUESTIONS.filter(q=>q.type==="lab"&&(!tag||q.labTag===tag));
+    if(!qs.length) qs=QUESTIONS.filter(q=>q.type==="lab");
+    if(!qs.length){toast("画像解析の問題が未登録です"); return;}
+    startSession(shuffle(qs),"画像解析ラボ 確認問題");
+  };
+  renderLabCtl();
+}
+function renderLabCtl(){
+  const el=$("#labCtl"); if(!el) return;
+  if(labMode==="binary"){
+    el.innerHTML=`<div class="label">閾値:<span id="thv">${labThresh}</span></div>
+    <input type="range" min="0" max="255" value="${labThresh}" id="thr">`;
+    $("#thr").oninput=e=>{labThresh=+e.target.value; $("#thv").textContent=labThresh;};
+  }else if(labMode==="pool"){
+    el.innerHTML=`<div class="confbar">
+      <button id="pMax" class="${labPool==="max"?"sel":""}">Max Pooling</button>
+      <button id="pAvg" class="${labPool==="avg"?"sel":""}">Average Pooling</button></div>`;
+    $("#pMax").onclick=()=>{labPool="max"; renderLabCtl();};
+    $("#pAvg").onclick=()=>{labPool="avg"; renderLabCtl();};
+  }else if(labMode==="lowres"){
+    el.innerHTML=`<div class="confbar">
+      <button data-r="224">224</button><button data-r="64" class="sel">64</button><button data-r="32">32</button></div>`;
+    el.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      labLowres=+b.dataset.r; el.querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));});
+  }else el.innerHTML="";
+}
+let labLowres=64;
+async function startCamera(){
+  try{
+    labStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:640}},audio:false});
+    const v=$("#labVideo"); v.srcObject=labStream; await v.play();
+    labLoop();
+    toast("カメラを起動しました");
+  }catch(e){ toast("カメラを起動できません:"+e.name); }
+}
+function stopCamera(){
+  if(labRAF) cancelAnimationFrame(labRAF), labRAF=null;
+  if(labStream){labStream.getTracks().forEach(t=>t.stop()); labStream=null;}
+}
+function labLoop(){
+  const v=$("#labVideo"), co=$("#cvOrig"), cp=$("#cvProc");
+  if(!co||!labStream){stopCamera(); return;}
+  const w=320, h=Math.round(w*(v.videoHeight/v.videoWidth||0.75));
+  co.width=w; co.height=h; cp.width=w; cp.height=h;
+  const g=co.getContext("2d",{willReadFrequently:true});
+  g.drawImage(v,0,0,w,h);
+  const src=g.getImageData(0,0,w,h);
+  const gp=cp.getContext("2d");
+  gp.putImageData(processImage(src,w,h),0,0);
+  labRAF=requestAnimationFrame(labLoop);
+}
+function processImage(src,w,h){
+  const d=src.data, out=new ImageData(w,h), o=out.data;
+  const gray=new Float32Array(w*h);
+  for(let i=0,p=0;i<d.length;i+=4,p++) gray[p]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  const setPix=(p,r,g2,b)=>{const i=p*4; o[i]=r; o[i+1]=g2; o[i+2]=b; o[i+3]=255;};
+  switch(labMode){
+    case "gray": for(let p=0;p<gray.length;p++) setPix(p,gray[p],gray[p],gray[p]); break;
+    case "binary": for(let p=0;p<gray.length;p++){const v=gray[p]>labThresh?255:0; setPix(p,v,v,v);} break;
+    case "rgb":{ // 縦3分割でR/G/B表示
+      const h3=Math.floor(h/3);
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        const p=y*w+x, i=p*4;
+        if(y<h3) setPix(p,d[i],0,0);
+        else if(y<h3*2) setPix(p,0,d[i+1],0);
+        else setPix(p,0,0,d[i+2]);
+      } break;}
+    case "blur":{
+      const k=2;
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        let s=0,n=0;
+        for(let dy=-k;dy<=k;dy++) for(let dx=-k;dx<=k;dx++){
+          const yy=y+dy,xx=x+dx;
+          if(yy>=0&&yy<h&&xx>=0&&xx<w){s+=gray[yy*w+xx]; n++;}
+        }
+        const v=s/n; setPix(y*w+x,v,v,v);
+      } break;}
+    case "sobel":{
+      for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){
+        const p=y*w+x;
+        const gx=-gray[p-w-1]-2*gray[p-1]-gray[p+w-1]+gray[p-w+1]+2*gray[p+1]+gray[p+w+1];
+        const gy=-gray[p-w-1]-2*gray[p-w]-gray[p-w+1]+gray[p+w-1]+2*gray[p+w]+gray[p+w+1];
+        const v=Math.min(255,Math.hypot(gx,gy)); setPix(p,v,v,v);
+      } break;}
+    case "lowres":{
+      const s=Math.max(1,Math.round(w/labLowres));
+      for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+        const sy=Math.floor(y/s)*s, sx=Math.floor(x/s)*s, q=(sy*w+sx)*4;
+        setPix(y*w+x,d[q],d[q+1],d[q+2]);
+      } break;}
+    case "pool":{
+      const s=8;
+      for(let by=0;by<h;by+=s) for(let bx=0;bx<w;bx+=s){
+        let mx=0,sum=0,n=0;
+        for(let y=by;y<Math.min(by+s,h);y++) for(let x=bx;x<Math.min(bx+s,w);x++){
+          const v=gray[y*w+x]; mx=Math.max(mx,v); sum+=v; n++;}
+        const v=labPool==="max"?mx:sum/n;
+        for(let y=by;y<Math.min(by+s,h);y++) for(let x=bx;x<Math.min(bx+s,w);x++) setPix(y*w+x,v,v,v);
+      } break;}
+    default: return src;
+  }
+  return out;
+}
+</script>
+<script>
+"use strict";
+/* ---------- 記録・データ管理 ---------- */
+function renderStats(){
+  const acc=accuracy(LOGS), st=streakDays();
+  // 分野別
+  const cats=[...new Set(QUESTIONS.map(q=>q.category))];
+  const catRows=cats.map(c=>{
+    const ids=new Set(QUESTIONS.filter(q=>q.category===c).map(q=>q.id));
+    const lg=LOGS.filter(l=>ids.has(l.questionId));
+    const a=accuracy(lg);
+    return {c,a,n:lg.length};
+  }).filter(r=>r.n>0).sort((x,y)=>(x.a??100)-(y.a??100));
+  // 誤答原因
+  const reasons={};
+  LOGS.filter(l=>!l.isCorrect&&l.errorReason).forEach(l=>reasons[l.errorReason]=(reasons[l.errorReason]||0)+1);
+  const reasonRows=Object.entries(reasons).sort((a,b)=>b[1]-a[1]);
+  const overconf=LOGS.filter(l=>!l.isCorrect&&l.confidence===2).length;
+  const lowcorrect=LOGS.filter(l=>l.isCorrect&&l.confidence===0).length;
+
+  $("#view-stats").innerHTML=`
+  <div class="card"><h2>全体</h2>
+    <div class="row">
+      <div class="stat"><div class="v">${LOGS.length}</div><div class="l">総回答数</div></div>
+      <div class="stat"><div class="v">${acc===null?"–":acc+"%"}</div><div class="l">総合正答率</div></div>
+      <div class="stat"><div class="v">${st}日</div><div class="l">継続学習</div></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="stat"><div class="v" style="color:var(--shu)">${overconf}</div><div class="l">自信あり誤答</div></div>
+      <div class="stat"><div class="v">${lowcorrect}</div><div class="l">自信なし正答</div></div>
+    </div>
+  </div>
+  <div class="card"><h2>分野別正答率</h2>
+    ${catRows.length?catRows.map(r=>`
+      <div style="display:flex; justify-content:space-between; font-size:0.88rem"><span>${esc(r.c)}</span><b>${r.a}%</b></div>
+      <div class="bar"><span class="${r.a<60?"low":""}" style="width:${r.a}%"></span></div>`).join("")
+     :`<div class="muted">まだ回答記録がありません。</div>`}
+  </div>
+  <div class="card"><h2>誤答原因の内訳</h2>
+    ${reasonRows.length?reasonRows.map(([r,n])=>`<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--line); font-size:0.88rem"><span>${esc(r)}</span><b>${n}回</b></div>`).join("")
+     :`<div class="muted">誤答時に原因を選ぶと、ここに集計されます。</div>`}
+  </div>
+  <div class="card"><h2>データ管理(PC⇄スマホ同期)</h2>
+    <div class="muted">JSONを書き出し、もう一方の端末で読み込むと学習履歴を同期できます。</div>
+    <button class="btn ghost small" id="dExport">学習データを書き出す(JSON)</button>
+    <button class="btn ghost small" id="dImport">学習データを読み込む</button>
+    <input type="file" id="dFile" accept=".json" style="display:none">
+    <details><summary>問題を追加する(JSON貼り付け)</summary>
+      <div class="muted" style="margin:6px 0">設問は後工程でGPT/Claudeに下のスキーマで作らせて、ここへ貼り付けます。</div>
+      <pre style="font-size:0.7rem">[{"id":"q100","category":"深層学習","topic":"BatchNorm",
+"difficulty":"標準","type":"choice",
+"question":"問題文","code":"(任意)",
+"choices":["A","B","C","D"],"answer":1,
+"explanation":"解説","terms":["ReLU"],
+"formulas":["勾配降下法"],"labTag":""}]</pre>
+      <textarea id="qJson" placeholder='[ {…}, {…} ]'></textarea>
+      <button class="btn primary small" id="qAdd">問題を取り込む</button>
+    </details>
+    <details><summary>危険な操作</summary>
+      <button class="btn shu small" id="dReset">学習履歴をすべて削除</button>
+    </details>
+  </div>`;
+  $("#dExport").onclick=exportData;
+  $("#dImport").onclick=()=>$("#dFile").click();
+  $("#dFile").onchange=importData;
+  $("#qAdd").onclick=importQuestions;
+  $("#dReset").onclick=async()=>{
+    if(!confirm("回答履歴と復習予定をすべて削除します。よろしいですか?(問題データは残ります)")) return;
+    await clearStore("logs"); await clearStore("srs");
+    await loadAll(); toast("削除しました"); renderStats();
+  };
+}
+async function exportData(){
+  const data={app:"eshikaku",version:1,exportedAt:new Date().toISOString(),
+    questions:await getAll("questions"),logs:await getAll("logs"),srs:await getAll("srs")};
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`eshikaku_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("書き出しました");
+}
+async function importData(e){
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    const data=JSON.parse(await f.text());
+    if(data.app!=="eshikaku") throw new Error("形式が違います");
+    for(const q of data.questions||[]) await put("questions",q);
+    for(const l of data.logs||[]) await put("logs",l);           // answerIdで重複排除
+    for(const s of data.srs||[]){                                 // 新しい方を採用
+      const cur=SRS[s.questionId];
+      if(!cur||(s.lastAt||0)>(cur.lastAt||0)) await put("srs",s);
+    }
+    await loadAll(); toast("読み込みました"); renderStats();
+  }catch(err){ toast("読み込み失敗:"+err.message); }
+  e.target.value="";
+}
+async function importQuestions(){
+  try{
+    const arr=JSON.parse($("#qJson").value);
+    if(!Array.isArray(arr)) throw new Error("配列で貼り付けてください");
+    let n=0;
+    for(const q of arr){
+      if(!q.id||!q.question||!Array.isArray(q.choices)||q.choices.length<2||typeof q.answer!=="number")
+        throw new Error(`必須項目不足: ${q.id||"(id無し)"}`);
+      q.category=q.category||"未分類"; q.topic=q.topic||""; q.type=q.type||"choice";
+      await put("questions",q); n++;
+    }
+    await loadAll(); $("#qJson").value="";
+    toast(`${n}問を取り込みました`); renderStats();
+  }catch(err){ toast("取り込み失敗:"+err.message); }
+}
+
+/* ---------- 初期化 ---------- */
+(async function init(){
+  $("#hdrDate").textContent=new Date().toLocaleDateString("ja-JP",{month:"long",day:"numeric",weekday:"short"});
+  await openDB();
+  const seeded=await getOne("meta","seeded");
+  if(!seeded){
+    for(const q of SEED_QUESTIONS) await put("questions",q);
+    await put("meta",{key:"seeded",value:true,at:Date.now()});
+  }
+  await loadAll();
+  renderHome();
+})();
+window.addEventListener("pagehide",stopCamera);
+</script>
+<script>
+"use strict";
+/* ---------- PWA: Service Worker 登録と更新 ---------- */
+const APP_VERSION="v0.2.0"; // sw.js の CACHE_NAME と揃える
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    let reloaded=false;
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(reloaded) return; reloaded=true;
+      // 学習セッション中は自動リロードせず、案内だけ出す
+      if(typeof session!=="undefined" && session){
+        toast("新しい版があります。区切りで再読み込みしてください");
+      }else{
+        location.reload();
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
