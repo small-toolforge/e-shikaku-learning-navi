@@ -1,12 +1,13 @@
 /* E資格 学習ナビ - Service Worker
-   v0.3.1: v0.3.js を既存の index.html へ注入し、既存の学習履歴を保ったまま機能拡張する。 */
-const CACHE_NAME = "eshikaku-v0.3.1";
+   v0.3.2: v0.3拡張とシード移行補助を既存の index.html へ注入する。 */
+const CACHE_NAME = "eshikaku-v0.3.2";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./v0.3.js",
+  "./v0.3.1.js",
   "./icons/app-icon.svg",
   "./icons/icon-192.png",
   "./icons/apple-touch-icon.png"
@@ -28,14 +29,17 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-async function withV3Extension(response) {
-  const html = await response.text();
-  const injected = html.includes("./v0.3.js")
-    ? html
-    : html.replace("</body>", "<script src=\"./v0.3.js\"></script></body>");
+async function withV3Extensions(response) {
+  let html = await response.text();
+  if (!html.includes("./v0.3.js")) {
+    html = html.replace("</body>", "<script src=\"./v0.3.js\"></script></body>");
+  }
+  if (!html.includes("./v0.3.1.js")) {
+    html = html.replace("</body>", "<script src=\"./v0.3.1.js\"></script></body>");
+  }
   const headers = new Headers(response.headers);
   headers.set("content-type", "text/html; charset=utf-8");
-  return new Response(injected, {
+  return new Response(html, {
     status: response.status,
     statusText: response.statusText,
     headers
@@ -51,7 +55,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .then((response) => withV3Extension(response))
+        .then((response) => withV3Extensions(response))
         .then((response) => {
           caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", response.clone()));
           return response;
