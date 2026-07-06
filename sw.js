@@ -1,17 +1,10 @@
-/* E資格 学習ナビ - Service Worker v0.3.8
-   オンライン時はネットワーク優先。オフライン時のみ同一版のキャッシュを使う。 */
-const CACHE_NAME = "eshikaku-v0.3.8";
+/* E資格 学習ナビ - Service Worker
+   単一ファイル版 index.html 用。外部app-*.jsは参照しない。 */
+const CACHE_NAME = "eshikaku-single-v0.3.0";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./assets/v0.3/styles.css?v=0.3.8",
-  "./assets/v0.3/app-1.js?v=0.3.8",
-  "./assets/v0.3/app-2.js?v=0.3.8",
-  "./assets/v0.3/lab-runtime.js?v=0.3.8",
-  "./assets/v0.3/app-4.js?v=0.3.8",
-  "./assets/v0.3/app-5.js?v=0.3.8",
-  "./icons/app-icon.svg",
   "./icons/icon-192.png",
   "./icons/apple-touch-icon.png"
 ];
@@ -38,6 +31,7 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // 公開中の版を優先。オフライン時だけ同じ版のキャッシュへ戻る。
   event.respondWith(
     fetch(request)
       .then(response => {
@@ -47,9 +41,6 @@ self.addEventListener("fetch", event => {
         }
         return response;
       })
-      .catch(() => {
-        if (request.mode === "navigate") return caches.match("./index.html");
-        return caches.match(request);
-      })
+      .catch(() => request.mode === "navigate" ? caches.match("./index.html") : caches.match(request))
   );
 });
