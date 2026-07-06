@@ -1,5 +1,5 @@
-/* E資格 学習ナビ - Service Worker v0.3.5 */
-const CACHE_NAME = "eshikaku-v0.3.5";
+/* E資格 学習ナビ - Service Worker v0.3.6 */
+const CACHE_NAME = "eshikaku-v0.3.6";
 const ASSETS = [
   "./",
   "./index.html",
