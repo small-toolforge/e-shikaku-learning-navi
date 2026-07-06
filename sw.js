@@ -1,40 +1,57 @@
-/* E資格 学習ナビ - Service Worker v0.3.6 */
-const CACHE_NAME = "eshikaku-v0.3.6";
+/* E資格 学習ナビ - Service Worker v0.3.7
+   方針: オンライン時は常にネットワーク優先。
+   オフライン時だけキャッシュへ戻る。これによりHTMLと分割JSの世代混在を防ぐ。 */
+const CACHE_NAME = "eshikaku-v0.3.7";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./assets/v0.3/styles.css",
-  "./assets/v0.3/app-1.js",
-  "./assets/v0.3/app-2.js",
-  "./assets/v0.3/app-3.js",
-  "./assets/v0.3/app-4.js",
-  "./assets/v0.3/app-5.js",
+  "./assets/v0.3/styles.css?v=0.3.7",
+  "./assets/v0.3/app-1.js?v=0.3.7",
+  "./assets/v0.3/app-2.js?v=0.3.7",
+  "./assets/v0.3/app-3.js?v=0.3.7",
+  "./assets/v0.3/app-4.js?v=0.3.7",
+  "./assets/v0.3/app-5.js?v=0.3.7",
+  "./assets/v0.3/lab-guard.js?v=0.3.7",
   "./icons/app-icon.svg",
   "./icons/icon-192.png",
   "./icons/apple-touch-icon.png"
 ];
+
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
+
 self.addEventListener("activate", event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
 });
+
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (request.mode === "navigate") {
-    event.respondWith(fetch(request).then(response => {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put("./index.html", copy));
-      return response;
-    }).catch(() => caches.match("./index.html")));
-    return;
-  }
-  event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(response => {
-    if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
-    return response;
-  })));
+
+  event.respondWith(
+    fetch(request)
+      .then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => {
+        if (request.mode === "navigate") return caches.match("./index.html");
+        return caches.match(request);
+      })
+  );
 });
