@@ -1,14 +1,500 @@
 "use strict";
-let labStream=null,labRAF=null,labSrc="camera",labMode="original",labThresh=128,labPool="max",labLowres=64,labFrozen=false,lastGray=null,lastW=0,lastH=0,lastOrig=null,vPrevGray=null,vBgGray=null,vAvgGray=null,vFps=30,vLastDraw=0,vNeedDraw=false;
-const CAM_MODES=[{id:"original",label:"元画像"},{id:"rgb",label:"RGB分解"},{id:"gray",label:"グレースケール"},{id:"binary",label:"二値化"},{id:"blur",label:"ぼかし"},{id:"sobel",label:"輪郭検出(Sobel)"},{id:"lowres",label:"解像度比較"},{id:"pool",label:"プーリング比較"}];
-const VID_MODES=[{id:"original",label:"元映像"},{id:"diff",label:"フレーム差分"},{id:"bg",label:"背景差分"},{id:"avg",label:"時間平均"},{id:"sobel",label:"エッジ検出"},{id:"lowres",label:"解像度低下"},{id:"fps",label:"fps低下"}];
-const LAB_THEME={original:"映像は数値の配列(高さ×幅×RGB)としてアプリに届いています。",rgb:"1枚のカラー画像はR・G・Bの3チャンネルの重なり。CNNの入力もこの形(3×H×W)です。",gray:"色を捨てて明るさだけにする前処理。計算量が減り、形の情報に集中できます。",binary:"閾値より明るいか暗いかで白黒に分ける前処理。",blur:"周囲の画素と平均する平滑化。細部やノイズが弱まります。",sobel:"Sobel(ソーベル)フィルタは明るさの差(勾配)で境界を強調する畳み込みです。停止して画面をタップすると3×3の計算過程を見られます。",lowres:"入力サイズを落とすと失われるのは空間方向の情報です。",pool:"Max PoolingとAverage Poolingの見え方の違いを比較します。",diff:"直前フレームとの差。動いた場所だけが白く残ります。",bg:"記憶した背景との差。背景から変わった部分が強く出ます。",avg:"時間方向に平均します。静止背景は残り、動く物体は薄くなります。",fps:"右側だけ更新頻度を落とします。失われるのは時間方向の情報です。"};
-function renderLab(){const modes=labSrc==="camera"?CAM_MODES:VID_MODES;if(!modes.some(m=>m.id===labMode))labMode="original";$("#view-lab").innerHTML=`<div class="subtabs"><button id="labTabCam" class="${labSrc==="camera"?"active":""}">カメララボ</button><button id="labTabVid" class="${labSrc==="video"?"active":""}">動画ラボ</button></div><div class="card labwrap"><div class="muted">映像・動画は端末内でのみ処理します。アップロード・自動保存はしません。</div><div id="labSrcCtl"></div><div class="modes" id="labModes">${modes.map(m=>`<button data-m="${m.id}" class="${m.id===labMode?"sel":""}">${m.label}</button>`).join("")}</div><div id="labCtl"></div><div class="labcanvases"><figure><canvas id="cvOrig" width="320" height="240"></canvas><figcaption>元映像</figcaption></figure><figure><canvas id="cvProc" width="320" height="240"></canvas><figcaption id="cvProcCap">処理後</figcaption></figure></div><div id="inspector"></div><div class="card" style="margin:0;background:var(--mist);border:none"><div class="eyebrow">今日のテーマ</div><div id="labTheme">${LAB_THEME[labMode]}</div></div><button class="btn shu" id="labQuiz">この実験の確認問題を解く</button></div>`;$("#labTabCam").onclick=()=>{if(labSrc!=="camera"){stopLab();labSrc="camera";labMode="original";renderLab();}};$("#labTabVid").onclick=()=>{if(labSrc!=="video"){stopLab();labSrc="video";labMode="original";renderLab();}};$$("#labModes button").forEach(b=>b.onclick=()=>{labMode=b.dataset.m;$("#inspector").innerHTML="";$$("#labModes button").forEach(x=>x.classList.toggle("sel",x===b));$("#labTheme").textContent=LAB_THEME[labMode];$("#cvProcCap").textContent=modes.find(m=>m.id===labMode).label;if(labMode==="avg")vAvgGray=null;renderLabCtl();});$("#labQuiz").onclick=()=>{const tags={sobel:"sobel",pool:"pool",diff:"diff",bg:"diff",avg:"video",fps:"video",lowres:labSrc==="video"?"video":""},tag=tags[labMode]||"";let qs=QUESTIONS.filter(q=>q.type==="lab"&&(!tag||q.labTag===tag));if(!qs.length)qs=QUESTIONS.filter(q=>q.type==="lab");if(qs.length)startSession(shuffle(qs),"画像解析ラボ 確認問題");};renderSrcCtl();renderLabCtl();$("#cvOrig").onclick=onInspectClick;}
-function renderSrcCtl(){const el=$("#labSrcCtl");if(labSrc==="camera"){el.innerHTML=`<div class="row"><button class="btn primary" style="flex:2" id="labStart">カメラを起動</button><button class="btn ghost" style="flex:1" id="labFreeze" ${labStream?"":"disabled"}>${labFrozen?"再開":"一時停止"}</button></div><div class="muted" id="frozenHint" style="${labFrozen?"":"display:none"}">停止中に左の画像をタップすると3×3画素と畳み込み計算を表示します。</div>`;$("#labStart").onclick=startCamera;$("#labFreeze").onclick=toggleFreeze;}else{el.innerHTML=`<input type="file" id="vidPick" accept="video/*" style="display:none"><div class="row"><button class="btn primary" style="flex:2" id="vidChoose">動画ファイルを選ぶ</button><button class="btn ghost" style="flex:1" id="vidPlay" disabled>再生</button><button class="btn ghost" style="flex:1" id="vidStep" disabled>コマ送り</button></div><div class="muted" id="vidHint">端末内の動画を選択してください。ファイルは端末外へ送信されません。</div>`;const v=$("#vidFile");$("#vidChoose").onclick=()=>$("#vidPick").click();$("#vidPick").onchange=e=>{const f=e.target.files[0];if(!f)return;if(v._url)URL.revokeObjectURL(v._url);v._url=URL.createObjectURL(f);v.src=v._url;v.loop=true;v.onseeked=()=>vNeedDraw=true;v.onloadeddata=()=>{vNeedDraw=true;vPrevGray=vBgGray=vAvgGray=null;$("#vidPlay").disabled=false;$("#vidStep").disabled=false;$("#vidHint").textContent=f.name+" を読み込みました。";v.play().then(()=>{$("#vidPlay").textContent="停止";startLabLoop();});};};$("#vidPlay").onclick=()=>{if(v.paused){v.play();$("#vidPlay").textContent="停止";}else{v.pause();$("#vidPlay").textContent="再生";}};$("#vidStep").onclick=()=>{v.pause();$("#vidPlay").textContent="再生";v.currentTime=Math.min(v.duration||0,(v.currentTime||0)+1/30);};}}
-function renderLabCtl(){const el=$("#labCtl");if(labMode==="binary"){el.innerHTML=`<div class="label">閾値: <span id="thv">${labThresh}</span></div><input type="range" min="0" max="255" value="${labThresh}" id="thr">`;$("#thr").oninput=e=>{labThresh=+e.target.value;$("#thv").textContent=labThresh;};}else if(labMode==="pool"){el.innerHTML=`<div class="confbar"><button id="pMax" class="${labPool==="max"?"sel":""}">Max Pooling</button><button id="pAvg" class="${labPool==="avg"?"sel":""}">Average Pooling</button></div>`;$("#pMax").onclick=()=>{labPool="max";renderLabCtl();};$("#pAvg").onclick=()=>{labPool="avg";renderLabCtl();};}else if(labMode==="lowres"){el.innerHTML=`<div class="confbar"><button data-r="224">224</button><button data-r="64" class="sel">64</button><button data-r="32">32</button></div>`;el.querySelectorAll("button").forEach(b=>b.onclick=()=>{labLowres=+b.dataset.r;el.querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));});}else if(labMode==="bg"){el.innerHTML=`<button class="btn ghost small" id="bgSet">いまの画面を背景として記憶</button>`;$("#bgSet").onclick=()=>{if(lastGray){vBgGray=lastGray.slice();toast("背景を記憶しました");}};}else if(labMode==="fps"){el.innerHTML=`<div class="confbar"><button data-f="30" class="${vFps===30?"sel":""}">30fps</button><button data-f="10" class="${vFps===10?"sel":""}">10fps</button><button data-f="5" class="${vFps===5?"sel":""}">5fps</button></div>`;el.querySelectorAll("button").forEach(b=>b.onclick=()=>{vFps=+b.dataset.f;el.querySelectorAll("button").forEach(x=>x.classList.toggle("sel",x===b));});}else el.innerHTML="";}
-async function startCamera(){try{labStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment",width:{ideal:640}},audio:false});const v=$("#labVideo");v.srcObject=labStream;await v.play();labFrozen=false;startLabLoop();renderSrcCtl();toast("カメラを起動しました");}catch(e){toast("カメラを起動できません:"+e.name);}}
-function startLabLoop(){if(!labRAF)labRAF=requestAnimationFrame(labLoop);}function stopLab(){if(labRAF)cancelAnimationFrame(labRAF),labRAF=null;if(labStream){labStream.getTracks().forEach(t=>t.stop());labStream=null;}const v=$("#vidFile");if(v&&!v.paused)v.pause();labFrozen=false;vPrevGray=vBgGray=vAvgGray=null;}function stopCamera(){stopLab();}function toggleFreeze(){labFrozen=!labFrozen;const h=$("#frozenHint");if(h)h.style.display=labFrozen?"":"none";$("#labFreeze").textContent=labFrozen?"再開":"一時停止";if(labFrozen)toast("一時停止しました。左の画像をタップしてください");else $("#inspector").innerHTML="";}
-function labLoop(ts){labRAF=requestAnimationFrame(labLoop);const co=$("#cvOrig"),cp=$("#cvProc");if(!co){cancelAnimationFrame(labRAF);labRAF=null;return;}if(labFrozen)return;const src=labSrc==="camera"?$("#labVideo"):$("#vidFile");if(labSrc==="video"&&src.paused&&!vNeedDraw)return;if(!src.videoWidth||!src.videoHeight)return;if(labSrc==="camera"&&!labStream)return;const w=320,h=Math.max(2,Math.round(w*src.videoHeight/src.videoWidth));if(co.width!==w||co.height!==h){co.width=w;co.height=h;cp.width=w;cp.height=h;vPrevGray=vBgGray=vAvgGray=null;}const g=co.getContext("2d",{willReadFrequently:true});g.drawImage(src,0,0,w,h);const orig=g.getImageData(0,0,w,h),d=orig.data,gray=new Float32Array(w*h);for(let i=0,p=0;i<d.length;i+=4,p++)gray[p]=.299*d[i]+.587*d[i+1]+.114*d[i+2];lastGray=gray;lastW=w;lastH=h;lastOrig=orig;const gp=cp.getContext("2d");if(labMode==="fps"){if(ts-vLastDraw>=1000/vFps){gp.putImageData(orig,0,0);vLastDraw=ts;}}else gp.putImageData(processFrame(orig,gray,w,h),0,0);if(labMode==="diff")vPrevGray=gray.slice();vNeedDraw=false;}
-function processFrame(orig,gray,w,h){const d=orig.data,out=new ImageData(w,h),o=out.data,set=(p,r,g,b)=>{const i=p*4;o[i]=r;o[i+1]=g;o[i+2]=b;o[i+3]=255;};switch(labMode){case"gray":for(let p=0;p<gray.length;p++)set(p,gray[p],gray[p],gray[p]);break;case"binary":for(let p=0;p<gray.length;p++){const v=gray[p]>labThresh?255:0;set(p,v,v,v);}break;case"rgb":{const h3=Math.floor(h/3);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x,i=p*4;if(y<h3)set(p,d[i],0,0);else if(y<h3*2)set(p,0,d[i+1],0);else set(p,0,0,d[i+2]);}break;}case"blur":for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,n=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2){const yy=y+dy,xx=x+dx;if(yy>=0&&yy<h&&xx>=0&&xx<w){s+=gray[yy*w+xx];n++;}}const v=s/n;set(y*w+x,v,v,v);}break;case"sobel":for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const p=y*w+x,gx=-gray[p-w-1]-2*gray[p-1]-gray[p+w-1]+gray[p-w+1]+2*gray[p+1]+gray[p+w+1],gy=-gray[p-w-1]-2*gray[p-w]-gray[p-w+1]+gray[p+w-1]+2*gray[p+w]+gray[p+w+1],v=Math.min(255,Math.hypot(gx,gy));set(p,v,v,v);}break;case"lowres":{const s=Math.max(1,Math.round(w/labLowres));for(let y=0;y<h;y++)for(let x=0;x<w;x++){const q=(Math.floor(y/s)*s*w+Math.floor(x/s)*s)*4;set(y*w+x,d[q],d[q+1],d[q+2]);}break;}case"pool":for(let by=0;by<h;by+=8)for(let bx=0;bx<w;bx+=8){let mx=0,sum=0,n=0;for(let y=by;y<Math.min(by+8,h);y++)for(let x=bx;x<Math.min(bx+8,w);x++){const v=gray[y*w+x];mx=Math.max(mx,v);sum+=v;n++;}const v=labPool==="max"?mx:sum/n;for(let y=by;y<Math.min(by+8,h);y++)for(let x=bx;x<Math.min(bx+8,w);x++)set(y*w+x,v,v,v);};break;case"diff":for(let p=0;p<gray.length;p++){const v=vPrevGray?Math.min(255,Math.abs(gray[p]-vPrevGray[p])*3):0;set(p,v,v,v);}break;case"bg":for(let p=0;p<gray.length;p++){const v=vBgGray?Math.min(255,Math.abs(gray[p]-vBgGray[p])*2.5):40;set(p,v,v,v);}break;case"avg":if(!vAvgGray)vAvgGray=gray.slice();else for(let p=0;p<gray.length;p++)vAvgGray[p]+=(gray[p]-vAvgGray[p])*.05;for(let p=0;p<gray.length;p++)set(p,vAvgGray[p],vAvgGray[p],vAvgGray[p]);break;default:return orig;}return out;}
-const SOBEL_X=[[-1,0,1],[-2,0,2],[-1,0,1]],SOBEL_Y=[[-1,-2,-1],[0,0,0],[1,2,1]];
-function onInspectClick(e){if(!lastGray)return;const v=$("#vidFile"),paused=(labSrc==="camera"&&labFrozen)||(labSrc==="video"&&v&&v.paused);if(!paused){toast(labSrc==="camera"?"一時停止してからタップしてください":"動画を停止してからタップしてください");return;}const cv=$("#cvOrig"),r=cv.getBoundingClientRect(),x=Math.min(Math.max(Math.round((e.clientX-r.left)*cv.width/r.width),1),lastW-2),y=Math.min(Math.max(Math.round((e.clientY-r.top)*cv.height/r.height),1),lastH-2);const a=[];for(let dy=-1;dy<=1;dy++){const row=[];for(let dx=-1;dx<=1;dx++)row.push(Math.round(lastGray[(y+dy)*lastW+x+dx]));a.push(row);}let gx=0,gy=0;for(let i=0;i<3;i++)for(let j=0;j<3;j++){gx+=a[i][j]*SOBEL_X[i][j];gy+=a[i][j]*SOBEL_Y[i][j];}const mag=Math.round(Math.hypot(gx,gy)),tbl=(m,c="")=>`<table class="itbl ${c}">${m.map(row=>`<tr>${row.map(z=>`<td>${z}</td>`).join("")}</tr>`).join("")}</table>`;$("#inspector").innerHTML=`<div class="card" style="margin:0"><h2>畳み込みインスペクタ</h2><div class="irow"><div><div class="label">入力3×3</div>${tbl(a)}</div><div><div class="label">Sobel X</div>${tbl(SOBEL_X,"kern")}</div><div><div class="label">Sobel Y</div>${tbl(SOBEL_Y,"kern")}</div></div><div class="label">掛ける → 足す</div><div>Gx = <b>${gx}</b> / Gy = <b>${gy}</b> / √(Gx² + Gy²) ≒ <b>${mag}</b></div><div class="label">読み方</div><div>「左側をマイナス、右側をプラスとして、左右の明るさの差を計算する。上下も同じように計算し、差が大きいほど境界として強く反応する」</div><div class="label">解釈</div><div>${mag>100?"この位置は強い境界です。":"この位置は比較的平坦で、境界としての反応は弱めです。"}</div></div>`;}
+
+/* =========================================================
+   画像解析ラボ v0.3.6
+   - カメラ / ローカル動画
+   - フレーム差分・背景差分・時間平均・Sobel・解像度・fps
+   - 停止中の3×3 Sobelインスペクタ
+   ========================================================= */
+
+let labStream = null;
+let labRaf = null;
+let labSource = "camera";
+let labMode = "original";
+let labFrozen = false;
+let labThreshold = 128;
+let labResolution = 64;
+let labFps = 30;
+let labLastFpsDraw = 0;
+let labNeedsDraw = false;
+let labPrevGray = null;
+let labBackgroundGray = null;
+let labAverageGray = null;
+let labLastGray = null;
+let labWidth = 0;
+let labHeight = 0;
+
+const CAMERA_MODES = [
+  ["original", "元画像"],
+  ["rgb", "RGB分解"],
+  ["gray", "グレースケール"],
+  ["binary", "二値化"],
+  ["blur", "ぼかし"],
+  ["sobel", "輪郭検出（Sobel）"],
+  ["lowres", "解像度比較"],
+  ["pool", "プーリング比較"]
+];
+
+const VIDEO_MODES = [
+  ["original", "元映像"],
+  ["diff", "フレーム差分"],
+  ["bg", "背景差分"],
+  ["avg", "時間平均"],
+  ["sobel", "エッジ検出"],
+  ["lowres", "解像度低下"],
+  ["fps", "fps低下"]
+];
+
+const LAB_TEXT = {
+  original: "映像は、連続した画素値の配列です。動画では、画像に時間方向の情報が加わります。",
+  rgb: "カラー画像はR・G・Bの3チャンネルです。CNNでは通常、3×高さ×幅の数値配列として扱います。",
+  gray: "色を捨てて明るさだけにする前処理です。形や境界に注目しやすくなります。",
+  binary: "明るさが閾値より大きいか小さいかで、白黒に分けます。",
+  blur: "近くの画素の平均を取り、細部やノイズを弱めます。",
+  sobel: "Sobelは近くの画素の明るさの差を使い、境界を強調する畳み込みです。",
+  lowres: "解像度を下げると、空間方向の細かな情報が減ります。",
+  pool: "領域ごとに代表値を残して縮小する処理です。Maxは強い反応、Averageは平均的な傾向を残します。",
+  diff: "直前フレームとの差です。時間方向に変化した、動いた場所が強調されます。",
+  bg: "記憶した背景との差です。背景から変化した場所が強調されます。",
+  avg: "時間方向に平均します。静止背景は残り、動く物体は薄くなります。",
+  fps: "右側だけ更新頻度を下げます。失われるのは時間方向の情報です。"
+};
+
+function renderLab() {
+  const modes = labSource === "camera" ? CAMERA_MODES : VIDEO_MODES;
+  if (!modes.some(([id]) => id === labMode)) labMode = "original";
+
+  $("#view-lab").innerHTML = `
+    <div class="subtabs">
+      <button id="labCameraTab" class="${labSource === "camera" ? "active" : ""}">カメララボ</button>
+      <button id="labVideoTab" class="${labSource === "video" ? "active" : ""}">動画ラボ</button>
+    </div>
+    <div class="card labwrap">
+      <div class="muted">映像・動画は端末内でのみ処理します。アップロード・自動保存はしません。</div>
+      <div id="labSourceControls"></div>
+      <div class="modes" id="labModeButtons">
+        ${modes.map(([id, label]) => `<button data-mode="${id}" class="${id === labMode ? "sel" : ""}">${label}</button>`).join("")}
+      </div>
+      <div id="labOptions"></div>
+      <div class="labcanvases">
+        <figure><canvas id="labOriginal" width="320" height="240"></canvas><figcaption>元映像</figcaption></figure>
+        <figure><canvas id="labProcessed" width="320" height="240"></canvas><figcaption id="labProcessedCaption">処理後</figcaption></figure>
+      </div>
+      <div class="muted" id="labFreezeHint" style="display:none">停止中です。左の画像をタップすると、選択した3×3画素とSobel計算を確認できます。</div>
+      <div id="labInspector"></div>
+      <div class="card" style="margin:0;background:var(--mist);border:none">
+        <div class="eyebrow">今日のテーマ</div>
+        <div id="labTheme">${LAB_TEXT[labMode]}</div>
+      </div>
+      <button class="btn shu" id="labQuestion">この実験の確認問題を解く</button>
+    </div>`;
+
+  $("#labCameraTab").onclick = () => switchLabSource("camera");
+  $("#labVideoTab").onclick = () => switchLabSource("video");
+  $$("#labModeButtons button").forEach(button => {
+    button.onclick = () => {
+      labMode = button.dataset.mode;
+      labPrevGray = null;
+      labAverageGray = null;
+      $("#labInspector").innerHTML = "";
+      renderLab();
+    };
+  });
+  $("#labOriginal").onclick = inspectPixel;
+  $("#labQuestion").onclick = startLabQuestion;
+
+  renderLabSourceControls();
+  renderLabOptions();
+}
+
+function switchLabSource(nextSource) {
+  if (labSource === nextSource) return;
+  stopLab();
+  labSource = nextSource;
+  labMode = "original";
+  renderLab();
+}
+
+function renderLabSourceControls() {
+  const box = $("#labSourceControls");
+  if (labSource === "camera") {
+    box.innerHTML = `
+      <div class="row">
+        <button class="btn primary" style="flex:2;margin-top:0" id="labStartCamera">カメラを起動</button>
+        <button class="btn ghost" style="flex:1;margin-top:0" id="labPauseCamera" ${labStream ? "" : "disabled"}>${labFrozen ? "再開" : "一時停止"}</button>
+      </div>`;
+    $("#labStartCamera").onclick = startCamera;
+    $("#labPauseCamera").onclick = toggleCameraFreeze;
+  } else {
+    box.innerHTML = `
+      <input id="labVideoPicker" type="file" accept="video/*" style="display:none">
+      <div class="row">
+        <button class="btn primary" style="flex:2;margin-top:0" id="labChooseVideo">動画を選択</button>
+        <button class="btn ghost" style="flex:1;margin-top:0" id="labPlayVideo" disabled>再生</button>
+        <button class="btn ghost" style="flex:1;margin-top:0" id="labStepVideo" disabled>コマ送り</button>
+      </div>
+      <div class="muted" id="labVideoStatus">端末内の動画を選択してください。</div>`;
+    $("#labChooseVideo").onclick = () => $("#labVideoPicker").click();
+    $("#labVideoPicker").onchange = loadVideoFile;
+    $("#labPlayVideo").onclick = toggleVideoPlay;
+    $("#labStepVideo").onclick = stepVideo;
+
+    const video = $("#vidFile");
+    if (video && video.src) {
+      $("#labPlayVideo").disabled = false;
+      $("#labStepVideo").disabled = false;
+    }
+  }
+}
+
+function renderLabOptions() {
+  const box = $("#labOptions");
+  if (labMode === "binary") {
+    box.innerHTML = `<div class="label">閾値: <span id="labThresholdLabel">${labThreshold}</span></div><input id="labThreshold" type="range" min="0" max="255" value="${labThreshold}">`;
+    $("#labThreshold").oninput = event => {
+      labThreshold = Number(event.target.value);
+      $("#labThresholdLabel").textContent = labThreshold;
+    };
+    return;
+  }
+  if (labMode === "lowres") {
+    box.innerHTML = `<div class="confbar"><button data-resolution="224">224</button><button data-resolution="64" class="sel">64</button><button data-resolution="32">32</button></div>`;
+    box.querySelectorAll("button").forEach(button => {
+      button.onclick = () => {
+        labResolution = Number(button.dataset.resolution);
+        box.querySelectorAll("button").forEach(item => item.classList.toggle("sel", item === button));
+      };
+    });
+    return;
+  }
+  if (labMode === "bg") {
+    box.innerHTML = `<button class="btn ghost small" id="labSetBackground">いまの画面を背景として記憶</button>`;
+    $("#labSetBackground").onclick = () => {
+      if (!labLastGray) return toast("先に動画を再生してください");
+      labBackgroundGray = labLastGray.slice();
+      toast("背景を記憶しました");
+    };
+    return;
+  }
+  if (labMode === "fps") {
+    box.innerHTML = `<div class="confbar"><button data-fps="30" class="${labFps === 30 ? "sel" : ""}">30 fps</button><button data-fps="10" class="${labFps === 10 ? "sel" : ""}">10 fps</button><button data-fps="5" class="${labFps === 5 ? "sel" : ""}">5 fps</button></div>`;
+    box.querySelectorAll("button").forEach(button => {
+      button.onclick = () => {
+        labFps = Number(button.dataset.fps);
+        labLastFpsDraw = 0;
+        renderLabOptions();
+      };
+    });
+    return;
+  }
+  box.innerHTML = "";
+}
+
+async function startCamera() {
+  try {
+    stopLab();
+    labStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 640 } },
+      audio: false
+    });
+    const video = $("#labVideo");
+    video.srcObject = labStream;
+    await video.play();
+    labFrozen = false;
+    renderLabSourceControls();
+    startLabLoop();
+    toast("カメラを起動しました");
+  } catch (error) {
+    toast("カメラを起動できません: " + error.name);
+  }
+}
+
+function toggleCameraFreeze() {
+  labFrozen = !labFrozen;
+  $("#labPauseCamera").textContent = labFrozen ? "再開" : "一時停止";
+  $("#labFreezeHint").style.display = labFrozen ? "" : "none";
+  if (!labFrozen) $("#labInspector").innerHTML = "";
+  if (labFrozen) toast("一時停止しました。左の画像をタップしてください");
+}
+
+function loadVideoFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const video = $("#vidFile");
+  if (video._objectUrl) URL.revokeObjectURL(video._objectUrl);
+  video._objectUrl = URL.createObjectURL(file);
+  video.src = video._objectUrl;
+  video.loop = true;
+  video.onloadeddata = () => {
+    labPrevGray = null;
+    labBackgroundGray = null;
+    labAverageGray = null;
+    labNeedsDraw = true;
+    $("#labPlayVideo").disabled = false;
+    $("#labStepVideo").disabled = false;
+    $("#labVideoStatus").textContent = file.name + " を読み込みました。";
+    video.play().then(() => {
+      $("#labPlayVideo").textContent = "停止";
+      startLabLoop();
+    });
+  };
+  video.onseeked = () => { labNeedsDraw = true; };
+  video.load();
+  event.target.value = "";
+}
+
+function toggleVideoPlay() {
+  const video = $("#vidFile");
+  if (!video.src) return;
+  if (video.paused) {
+    video.play();
+    $("#labPlayVideo").textContent = "停止";
+  } else {
+    video.pause();
+    $("#labPlayVideo").textContent = "再生";
+  }
+}
+
+function stepVideo() {
+  const video = $("#vidFile");
+  if (!video.src) return;
+  video.pause();
+  $("#labPlayVideo").textContent = "再生";
+  video.currentTime = Math.min(video.duration || 0, (video.currentTime || 0) + 1 / 30);
+  labNeedsDraw = true;
+}
+
+function startLabLoop() {
+  if (!labRaf) labRaf = requestAnimationFrame(drawLabFrame);
+}
+
+function stopLab() {
+  if (labRaf) cancelAnimationFrame(labRaf);
+  labRaf = null;
+  if (labStream) labStream.getTracks().forEach(track => track.stop());
+  labStream = null;
+  const video = $("#vidFile");
+  if (video && !video.paused) video.pause();
+  labFrozen = false;
+  labPrevGray = null;
+  labBackgroundGray = null;
+  labAverageGray = null;
+}
+
+function stopCamera() {
+  stopLab();
+}
+
+function drawLabFrame(time) {
+  labRaf = requestAnimationFrame(drawLabFrame);
+  const originalCanvas = $("#labOriginal");
+  const processedCanvas = $("#labProcessed");
+  if (!originalCanvas || !processedCanvas) {
+    cancelAnimationFrame(labRaf);
+    labRaf = null;
+    return;
+  }
+  if (labSource === "camera" && labFrozen) return;
+
+  const source = labSource === "camera" ? $("#labVideo") : $("#vidFile");
+  if (!source || !source.videoWidth || !source.videoHeight) return;
+  if (labSource === "camera" && !labStream) return;
+  if (labSource === "video" && source.paused && !labNeedsDraw) return;
+
+  const width = 320;
+  const height = Math.max(2, Math.round(width * source.videoHeight / source.videoWidth));
+  if (originalCanvas.width !== width || originalCanvas.height !== height) {
+    originalCanvas.width = width;
+    originalCanvas.height = height;
+    processedCanvas.width = width;
+    processedCanvas.height = height;
+    labPrevGray = null;
+    labBackgroundGray = null;
+    labAverageGray = null;
+  }
+
+  const originalCtx = originalCanvas.getContext("2d", { willReadFrequently: true });
+  originalCtx.drawImage(source, 0, 0, width, height);
+  const image = originalCtx.getImageData(0, 0, width, height);
+  const gray = toGray(image.data, width * height);
+  labLastGray = gray;
+  labWidth = width;
+  labHeight = height;
+
+  const processedCtx = processedCanvas.getContext("2d");
+  if (labMode === "fps") {
+    if (time - labLastFpsDraw >= 1000 / labFps) {
+      processedCtx.putImageData(image, 0, 0);
+      labLastFpsDraw = time;
+    }
+  } else {
+    processedCtx.putImageData(applyLabMode(image, gray, width, height), 0, 0);
+  }
+  if (labMode === "diff") labPrevGray = gray.slice();
+  labNeedsDraw = false;
+}
+
+function toGray(data, pixels) {
+  const gray = new Float32Array(pixels);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  return gray;
+}
+
+function applyLabMode(image, gray, width, height) {
+  if (labMode === "original") return image;
+  const out = new ImageData(width, height);
+  const data = image.data;
+  const set = (pixel, r, g, b) => {
+    const i = pixel * 4;
+    out.data[i] = r;
+    out.data[i + 1] = g;
+    out.data[i + 2] = b;
+    out.data[i + 3] = 255;
+  };
+
+  if (labMode === "gray") {
+    for (let p = 0; p < gray.length; p++) set(p, gray[p], gray[p], gray[p]);
+    return out;
+  }
+  if (labMode === "binary") {
+    for (let p = 0; p < gray.length; p++) {
+      const value = gray[p] > labThreshold ? 255 : 0;
+      set(p, value, value, value);
+    }
+    return out;
+  }
+  if (labMode === "rgb") {
+    const oneThird = Math.floor(height / 3);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const p = y * width + x;
+      const i = p * 4;
+      if (y < oneThird) set(p, data[i], 0, 0);
+      else if (y < oneThird * 2) set(p, 0, data[i + 1], 0);
+      else set(p, 0, 0, data[i + 2]);
+    }
+    return out;
+  }
+  if (labMode === "blur") {
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      let sum = 0, count = 0;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2) {
+        const yy = y + dy, xx = x + dx;
+        if (yy >= 0 && yy < height && xx >= 0 && xx < width) {
+          sum += gray[yy * width + xx];
+          count++;
+        }
+      }
+      const value = sum / count;
+      set(y * width + x, value, value, value);
+    }
+    return out;
+  }
+  if (labMode === "sobel") {
+    for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
+      const p = y * width + x;
+      const gx = -gray[p - width - 1] - 2 * gray[p - 1] - gray[p + width - 1] + gray[p - width + 1] + 2 * gray[p + 1] + gray[p + width + 1];
+      const gy = -gray[p - width - 1] - 2 * gray[p - width] - gray[p - width + 1] + gray[p + width - 1] + 2 * gray[p + width] + gray[p + width + 1];
+      const value = Math.min(255, Math.hypot(gx, gy));
+      set(p, value, value, value);
+    }
+    return out;
+  }
+  if (labMode === "lowres") {
+    const step = Math.max(1, Math.round(width / labResolution));
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const sy = Math.floor(y / step) * step;
+      const sx = Math.floor(x / step) * step;
+      const i = (sy * width + sx) * 4;
+      set(y * width + x, data[i], data[i + 1], data[i + 2]);
+    }
+    return out;
+  }
+  if (labMode === "pool") {
+    const size = 8;
+    for (let by = 0; by < height; by += size) for (let bx = 0; bx < width; bx += size) {
+      let max = 0, sum = 0, count = 0;
+      for (let y = by; y < Math.min(by + size, height); y++) for (let x = bx; x < Math.min(bx + size, width); x++) {
+        const value = gray[y * width + x];
+        max = Math.max(max, value);
+        sum += value;
+        count++;
+      }
+      const result = labPool === "max" ? max : sum / count;
+      for (let y = by; y < Math.min(by + size, height); y++) for (let x = bx; x < Math.min(bx + size, width); x++) set(y * width + x, result, result, result);
+    }
+    return out;
+  }
+  if (labMode === "diff" || labMode === "bg") {
+    const base = labMode === "diff" ? labPrevGray : labBackgroundGray;
+    for (let p = 0; p < gray.length; p++) {
+      const value = base ? Math.min(255, Math.abs(gray[p] - base[p]) * (labMode === "diff" ? 3 : 2.5)) : (labMode === "bg" ? 40 : 0);
+      set(p, value, value, value);
+    }
+    return out;
+  }
+  if (labMode === "avg") {
+    if (!labAverageGray) labAverageGray = gray.slice();
+    else for (let p = 0; p < gray.length; p++) labAverageGray[p] += (gray[p] - labAverageGray[p]) * 0.05;
+    for (let p = 0; p < gray.length; p++) set(p, labAverageGray[p], labAverageGray[p], labAverageGray[p]);
+    return out;
+  }
+  return image;
+}
+
+const SOBEL_X = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
+const SOBEL_Y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
+
+function inspectPixel(event) {
+  const video = $("#vidFile");
+  const paused = (labSource === "camera" && labFrozen) || (labSource === "video" && video && video.paused);
+  if (!paused) {
+    toast(labSource === "camera" ? "一時停止してからタップしてください" : "動画を停止してからタップしてください");
+    return;
+  }
+  if (!labLastGray) return;
+
+  const canvas = $("#labOriginal");
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.max(1, Math.min(labWidth - 2, Math.floor((event.clientX - rect.left) * labWidth / rect.width)));
+  const y = Math.max(1, Math.min(labHeight - 2, Math.floor((event.clientY - rect.top) * labHeight / rect.height)));
+  const values = [];
+  let gx = 0, gy = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    const row = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      const value = Math.round(labLastGray[(y + dy) * labWidth + x + dx]);
+      row.push(value);
+      gx += value * SOBEL_X[dy + 1][dx + 1];
+      gy += value * SOBEL_Y[dy + 1][dx + 1];
+    }
+    values.push(row);
+  }
+  const magnitude = Math.round(Math.hypot(gx, gy));
+  const table = (matrix, klass = "") => `<table class="itbl ${klass}">${matrix.map(row => `<tr>${row.map(value => `<td>${value}</td>`).join("")}</tr>`).join("")}</table>`;
+  $("#labInspector").innerHTML = `
+    <div class="card" style="margin:0">
+      <h2>畳み込みインスペクタ</h2>
+      <div class="irow">
+        <div><div class="label">入力3×3</div>${table(values)}</div>
+        <div><div class="label">Sobel X</div>${table(SOBEL_X, "kern")}</div>
+        <div><div class="label">Sobel Y</div>${table(SOBEL_Y, "kern")}</div>
+      </div>
+      <div class="label">計算結果</div>
+      <div>Gx = <b>${gx}</b> / Gy = <b>${gy}</b> / √(Gx² + Gy²) ≒ <b>${magnitude}</b></div>
+      <div class="label">読み方</div>
+      <div>「左側をマイナス、右側をプラスとして、左右の明るさの差を計算する。上下も同じように計算し、差が大きいほど境界として強く反応する」</div>
+      <div class="label">解釈</div>
+      <div>${magnitude > 100 ? "この位置は強い境界です。" : "この位置は比較的平坦で、境界としての反応は弱めです。"}</div>
+    </div>`;
+}
+
+function startLabQuestion() {
+  const tags = { sobel: "sobel", pool: "pool", diff: "diff", bg: "diff", avg: "video", fps: "video", lowres: labSource === "video" ? "video" : "" };
+  const tag = tags[labMode] || "";
+  let questions = QUESTIONS.filter(q => q.type === "lab" && (!tag || q.labTag === tag));
+  if (!questions.length) questions = QUESTIONS.filter(q => q.type === "lab");
+  if (!questions.length) return toast("画像解析の問題が未登録です");
+  startSession(shuffle(questions), "画像解析ラボ 確認問題");
+}
