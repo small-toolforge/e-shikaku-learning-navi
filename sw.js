@@ -3,9 +3,9 @@
    更新ルール(README参照):
    index.html / manifest / icons を変更したら、
    下の CACHE_NAME の末尾バージョンを必ず上げること。
-   例: eshikaku-v0.2.0 → eshikaku-v0.2.1
+   例: eshikaku-v0.3.0 → eshikaku-v0.3.1
    ================================================= */
-const CACHE_NAME = "eshikaku-v0.2.1";
+const CACHE_NAME = "eshikaku-v0.3.0";
 
 const ASSETS = [
   "./",
@@ -16,14 +16,12 @@ const ASSETS = [
   "./icons/apple-touch-icon.png"
 ];
 
-/* インストール: 一式を先読みし、待機せず即座に新版へ */
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
   );
 });
 
-/* 有効化: CACHE_NAME が異なる古いキャッシュをすべて削除 */
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
@@ -32,10 +30,6 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-/* 取得:
-   - ページ本体(navigate)はネットワーク優先。オフライン時のみキャッシュ。
-     → 古い index.html が残り続けることを防ぐ
-   - その他の同一オリジンGETはキャッシュ優先+取得時に更新 */
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
