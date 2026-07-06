@@ -1,6 +1,6 @@
 /* E資格 学習ナビ - Service Worker
-   v0.3.2: v0.3拡張とシード移行補助を既存の index.html へ注入する。 */
-const CACHE_NAME = "eshikaku-v0.3.2";
+   v0.3.3: 既存アプリのIndexedDB初期化完了を確認してからv0.3拡張を読み込む。 */
+const CACHE_NAME = "eshikaku-v0.3.3";
 
 const ASSETS = [
   "./",
@@ -31,6 +31,21 @@ self.addEventListener("activate", (event) => {
 
 async function withV3Extensions(response) {
   let html = await response.text();
+  const prelude = `<script>
+  (function () {
+    try {
+      Object.defineProperty(window, "db", {
+        configurable: true,
+        get: function () {
+          try { return window.eval("db"); } catch (_) { return null; }
+        }
+      });
+    } catch (_) {}
+  })();
+  </script>`;
+  if (!html.includes("window.eval(\"db\")")) {
+    html = html.replace("</body>", prelude + "</body>");
+  }
   if (!html.includes("./v0.3.js")) {
     html = html.replace("</body>", "<script src=\"./v0.3.js\"></script></body>");
   }
