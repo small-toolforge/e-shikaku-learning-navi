@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>E資格 学習ナビ</title>
+  <rect width="512" height="512" rx="96" fill="#FAF9F4"/>
+  <rect x="72" y="72" width="368" height="368" rx="72" fill="#2A5A8C"/>
+  <text x="160" y="325" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="230" font-weight="700">E</text>
+  <path d="M268 335l48 48 110-132" fill="none" stroke="#C73E3A" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
