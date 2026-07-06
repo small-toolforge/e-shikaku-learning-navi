@@ -11,8 +11,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="E資格ナビ">
 <title>E資格 学習ナビ</title>
-<!-- v0.3.7: 全部品を同じ版番号で取得し、PWAキャッシュ混在を防ぐ -->
-<link rel="stylesheet" href="assets/v0.3/styles.css?v=0.3.7">
+<!-- v0.3.8: ラボは単一の独立ランタイムを参照する -->
+<link rel="stylesheet" href="assets/v0.3/styles.css?v=0.3.8">
 </head>
 <body>
 <header class="app"><h1>E資格 学習ナビ</h1><span class="sub" id="hdrDate"></span></header>
@@ -34,12 +34,11 @@
 <div class="toast" id="toast"></div>
 <video id="labVideo" muted playsinline></video>
 <video id="vidFile" muted playsinline></video>
-<!-- 依存順: DB/データ → 共通UI → ラボ → 記録/初期化 → PWA → ラボ保護 -->
-<script src="assets/v0.3/app-1.js?v=0.3.7"></script>
-<script src="assets/v0.3/app-2.js?v=0.3.7"></script>
-<script src="assets/v0.3/app-3.js?v=0.3.7"></script>
-<script src="assets/v0.3/app-4.js?v=0.3.7"></script>
-<script src="assets/v0.3/app-5.js?v=0.3.7"></script>
-<script src="assets/v0.3/lab-guard.js?v=0.3.7"></script>
+<!-- 依存順: DB/データ → 共通UI → 独立ラボ → 記録/初期化 → PWA -->
+<script src="assets/v0.3/app-1.js?v=0.3.8"></script>
+<script src="assets/v0.3/app-2.js?v=0.3.8"></script>
+<script src="assets/v0.3/lab-runtime.js?v=0.3.8"></script>
+<script src="assets/v0.3/app-4.js?v=0.3.8"></script>
+<script src="assets/v0.3/app-5.js?v=0.3.8"></script>
 </body>
 </html>
