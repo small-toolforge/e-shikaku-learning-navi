@@ -1,0 +1,9 @@
+# 学習履歴バックアップ(個人データ)はコミットしない
+eshikaku_backup_*.json
+*.backup.json
+
+# 教材・APIキー・秘密情報
+materials/
+secrets/
+*.key
+.env
