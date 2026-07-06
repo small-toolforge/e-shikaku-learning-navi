@@ -1,18 +1,16 @@
-/* E資格 学習ナビ - Service Worker v0.3.7
-   方針: オンライン時は常にネットワーク優先。
-   オフライン時だけキャッシュへ戻る。これによりHTMLと分割JSの世代混在を防ぐ。 */
-const CACHE_NAME = "eshikaku-v0.3.7";
+/* E資格 学習ナビ - Service Worker v0.3.8
+   オンライン時はネットワーク優先。オフライン時のみ同一版のキャッシュを使う。 */
+const CACHE_NAME = "eshikaku-v0.3.8";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./assets/v0.3/styles.css?v=0.3.7",
-  "./assets/v0.3/app-1.js?v=0.3.7",
-  "./assets/v0.3/app-2.js?v=0.3.7",
-  "./assets/v0.3/app-3.js?v=0.3.7",
-  "./assets/v0.3/app-4.js?v=0.3.7",
-  "./assets/v0.3/app-5.js?v=0.3.7",
-  "./assets/v0.3/lab-guard.js?v=0.3.7",
+  "./assets/v0.3/styles.css?v=0.3.8",
+  "./assets/v0.3/app-1.js?v=0.3.8",
+  "./assets/v0.3/app-2.js?v=0.3.8",
+  "./assets/v0.3/lab-runtime.js?v=0.3.8",
+  "./assets/v0.3/app-4.js?v=0.3.8",
+  "./assets/v0.3/app-5.js?v=0.3.8",
   "./icons/app-icon.svg",
   "./icons/icon-192.png",
   "./icons/apple-touch-icon.png"
