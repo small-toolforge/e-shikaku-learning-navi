@@ -1,16 +1,17 @@
 {
   "name": "E資格 学習ナビ",
   "short_name": "E資格ナビ",
-  "description": "JDLA E資格の学習支援アプリ(間隔反復・用語/数式カード・コード読解・カメラ画像解析ラボ)",
+  "description": "JDLA E資格の私用学習支援PWA。間隔反復、用語・数式カード、コード読解、カメラ・動画ラボに対応。",
+  "id": "./",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#FAF9F4",
   "theme_color": "#FAF9F4",
   "icons": [
-    { "src": "icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
