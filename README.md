@@ -92,6 +92,8 @@ Windowsでは次をダブルクリックします。
 tools\リリース検査.cmd
 ```
 
+このCMDは、Python Launcher、PATH上のPython、一般的なAnaconda／Minicondaの配置、`.py`のファイル関連付けの順に実行環境を探します。見つからない場合は、Anaconda Promptで `リリース検査.py` を直接実行してください。
+
 コマンドラインでは次のとおりです。
 
 ```bash
@@ -108,6 +110,8 @@ python tools/リリース検査.py
 - 静的HTMLのid重複
 - Node.jsがある場合はJavaScript構文
 - 旧分割版ファイルが残っていないこと
+
+Node.jsがない場合はJavaScript構文検査だけを警告として省略します。その他の検査が正常なら `結果: OK（警告 1件）` となり、Node.jsの導入は必須ではありません。
 
 その後、`docs/3端末動作確認チェック表.md` に沿って確認します。
 
