@@ -1,0 +1,5 @@
+E資格 学習ナビ v0.3.1
+3端末受入完了: 2026-07-11
+対象: Windows 11 Edge / iPhone Safari-PWA / Android Chrome
+判定: 安定版
+端末間JSON移行: iPhone→Windows、iPhone→Androidで確認済み
