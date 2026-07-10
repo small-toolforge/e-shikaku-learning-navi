@@ -25,18 +25,41 @@ SCRIPTS = [
     "assets/v0.3.1/app-init.js",
 ]
 REQUIRED = [
-    "index.html", "sw.js", "manifest.webmanifest", ".nojekyll", "README.md",
-    "icons/app-icon.svg", "icons/icon-192.png", "icons/apple-touch-icon.png",
-    STYLE, *SCRIPTS,
+    "index.html",
+    "sw.js",
+    "manifest.webmanifest",
+    ".nojekyll",
+    "README.md",
+    "icons/app-icon.svg",
+    "icons/icon-192.png",
+    "icons/apple-touch-icon.png",
+    STYLE,
+    *SCRIPTS,
     "docs/3端末動作確認チェック表.md",
-    "tools/リリース検査.py", "tools/リリース検査.cmd",
+    "tools/リリース検査.py",
+    "tools/リリース検査.cmd",
 ]
 LEGACY = [
     "v0.3.1.js",
     "assets/v0.3/styles.css",
-    "assets/v0.3/app-1.js", "assets/v0.3/app-2.js", "assets/v0.3/app-3.js",
-    "assets/v0.3/app-4.js", "assets/v0.3/app-5.js",
-    "assets/v0.3/lab-guard.js", "assets/v0.3/lab-runtime.js",
+    "assets/v0.3/app-1.js",
+    "assets/v0.3/app-2.js",
+    "assets/v0.3/app-3.js",
+    "assets/v0.3/app-4.js",
+    "assets/v0.3/app-5.js",
+    "assets/v0.3/lab-guard.js",
+    "assets/v0.3/lab-runtime.js",
+]
+EXPECTED_SYMBOLS = [
+    "function renderHome",
+    "function renderLab",
+    "function renderStats",
+    "function validateQuestionBatch",
+    "function runDiagnostics",
+    "function downloadBackup",
+    "function saveAnswerAtomic",
+    "function saveRecoverySnapshot",
+    "function clearHistoryAtomic",
 ]
 
 
@@ -45,14 +68,20 @@ class Inspector(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.ids: list[str] = []
         self.script_srcs: list[str] = []
+        self.script_defer: list[bool] = []
         self.stylesheets: list[str] = []
+        self.inline_script_count = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         data = dict(attrs)
         if data.get("id"):
             self.ids.append(str(data["id"]))
-        if tag == "script" and data.get("src"):
-            self.script_srcs.append(str(data["src"]))
+        if tag == "script":
+            if data.get("src"):
+                self.script_srcs.append(str(data["src"]))
+                self.script_defer.append("defer" in data)
+            else:
+                self.inline_script_count += 1
         if tag == "link" and data.get("rel") == "stylesheet" and data.get("href"):
             self.stylesheets.append(str(data["href"]))
 
@@ -63,9 +92,12 @@ def main() -> int:
     errors: list[str] = []
 
     for rel in REQUIRED:
-        (ok if (ROOT / rel).exists() else errors).append(
-            f"存在: {rel}" if (ROOT / rel).exists() else f"必須ファイルがありません: {rel}"
-        )
+        path = ROOT / rel
+        if path.exists():
+            ok.append(f"存在: {rel}")
+        else:
+            errors.append(f"必須ファイルがありません: {rel}")
+
     for rel in LEGACY:
         if (ROOT / rel).exists():
             errors.append(f"旧試作ファイルが残っています: {rel}")
@@ -74,7 +106,8 @@ def main() -> int:
         html = (ROOT / "index.html").read_text(encoding="utf-8")
         sw = (ROOT / "sw.js").read_text(encoding="utf-8")
         manifest = json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
-        javascript = "\n".join((ROOT / rel).read_text(encoding="utf-8") for rel in SCRIPTS)
+        script_texts = {rel: (ROOT / rel).read_text(encoding="utf-8") for rel in SCRIPTS}
+        javascript = "\n".join(script_texts.values())
     except Exception as exc:
         errors.append(f"主要ファイルを読み込めません: {exc}")
         return report(ok, warnings, errors)
@@ -91,20 +124,37 @@ def main() -> int:
         errors.append(f"CSS参照の順序・名称が不一致: {inspector.stylesheets}")
     else:
         ok.append("CSS参照一致")
+
     if inspector.script_srcs != SCRIPTS:
         errors.append(f"JavaScript参照の順序・名称が不一致: {inspector.script_srcs}")
     else:
         ok.append("JavaScript参照順一致")
 
-    symbols = [
-        "function renderHome", "function renderLab", "function renderStats",
-        "function validateQuestionBatch", "function runDiagnostics", "function downloadBackup",
-    ]
-    for symbol in symbols:
+    if inspector.script_defer and not all(inspector.script_defer):
+        errors.append("外部JavaScriptにはすべてdeferを付けてください")
+    else:
+        ok.append("JavaScriptはdefer読込")
+
+    if inspector.inline_script_count:
+        errors.append(f"index.htmlにインラインscriptが残っています: {inspector.inline_script_count}件")
+    else:
+        ok.append("index.htmlにインラインscriptなし")
+
+    for symbol in EXPECTED_SYMBOLS:
         if symbol in javascript:
             ok.append(f"実装あり: {symbol}")
         else:
             errors.append(f"実装が見つかりません: {symbol}")
+
+    if "await renderHome()" not in script_texts[SCRIPTS[-1]]:
+        errors.append("初期化時にrenderHome()をawaitしていません")
+    else:
+        ok.append("初期ホーム描画をawait")
+
+    if 'db.transaction(["srs", "logs"], "readwrite")' not in javascript:
+        errors.append("回答ログと復習予定の同時保存が見つかりません")
+    else:
+        ok.append("回答ログと復習予定を原子的に保存")
 
     app_match = re.search(r'const\s+APP_VERSION\s*=\s*["\'](v[^"\']+)["\']', javascript)
     cache_match = re.search(r'const\s+CACHE_NAME\s*=\s*["\']([^"\']+)["\']', sw)
@@ -112,6 +162,7 @@ def main() -> int:
         errors.append("APP_VERSIONを取得できません")
     elif app_match.group(1) != VERSION:
         errors.append(f"APP_VERSIONが想定外です: {app_match.group(1)}")
+
     if not cache_match:
         errors.append("CACHE_NAMEを取得できません")
     elif VERSION not in cache_match.group(1):
@@ -129,21 +180,42 @@ def main() -> int:
             rel = asset.removeprefix("./").split("?", 1)[0]
             if not (ROOT / rel).exists():
                 errors.append(f"Service Worker対象が存在しません: {asset}")
-        for required_asset in ["./index.html", "./manifest.webmanifest", f"./{STYLE}", *[f"./{x}" for x in SCRIPTS]]:
+        required_assets = ["./index.html", "./manifest.webmanifest", f"./{STYLE}", *[f"./{item}" for item in SCRIPTS]]
+        for required_asset in required_assets:
             if required_asset not in sw_assets:
                 errors.append(f"Service Worker対象から欠落: {required_asset}")
         ok.append(f"Service Worker対象: {len(sw_assets)}件")
     else:
         errors.append("sw.jsのASSETS配列を取得できません")
 
-    for icon in manifest.get("icons", []):
+    for token, label in [
+        ("self.skipWaiting()", "skipWaiting"),
+        ("self.clients.claim()", "clients.claim"),
+        ("fetch(request)", "ネットワーク優先fetch"),
+    ]:
+        if token in sw:
+            ok.append(f"Service Worker: {label}")
+        else:
+            errors.append(f"Service Workerに{label}がありません")
+
+    if manifest.get("id") != "./":
+        errors.append("manifest.idは ./ にしてください")
+    if manifest.get("start_url") != "./" or manifest.get("scope") != "./":
+        errors.append("manifestのstart_urlとscopeは ./ にしてください")
+    if manifest.get("display") != "standalone":
+        errors.append("manifest.displayはstandaloneにしてください")
+    if manifest.get("orientation") != "any":
+        warnings.append("3端末対応のためorientationはanyを推奨します")
+
+    icons = manifest.get("icons", [])
+    if not icons:
+        errors.append("manifestにiconsがありません")
+    for icon in icons:
         src = str(icon.get("src", ""))
         if not src or not (ROOT / src).exists():
             errors.append(f"manifestのiconが存在しません: {src or '(srcなし)'}")
         if src and f"./{src}" not in sw_assets:
             errors.append(f"manifestのiconがService Worker対象外です: {src}")
-    if manifest.get("orientation") != "any":
-        warnings.append("3端末対応のためorientationはanyを推奨します")
 
     node = shutil.which("node")
     if node:
@@ -154,8 +226,8 @@ def main() -> int:
         result = subprocess.run([node, "--check", str(ROOT / "sw.js")], capture_output=True, text=True)
         if result.returncode:
             errors.append(f"JavaScript構文エラー（sw.js）: {result.stderr.strip()}")
-        if not any("JavaScript構文エラー" in x for x in errors):
-            ok.append(f"JavaScript構文OK: {len(SCRIPTS)+1}ファイル")
+        if not any("JavaScript構文エラー" in item for item in errors):
+            ok.append(f"JavaScript構文OK: {len(SCRIPTS) + 1}ファイル")
     else:
         warnings.append("Node.jsがないためJavaScript構文チェックを省略しました")
 
