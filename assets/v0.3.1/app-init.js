@@ -1,0 +1,6 @@
+"use strict";
+async function seed(){const meta=await getOne('meta','seedVersion'),version=meta?Number(meta.value)||0:0;if(version<2){for(const q of SEED_QUESTIONS){if(!await getOne('questions',q.id))await putOne('questions',q)}await putOne('meta',{key:'seedVersion',value:2,at:Date.now()})}}
+async function init(){try{$("#hdrDate").textContent=new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'short'});await openDB();await seed();await loadAll();renderHome()}catch(e){$("#view-home").innerHTML=`<div class="card"><h2>初期化できませんでした</h2><div class="muted">${esc(e.message||e)}</div><button class="btn primary" onclick="location.reload()">再読み込み</button></div>`;console.error(e)}}
+window.addEventListener('pagehide',stopLab);window.addEventListener('error',e=>console.error('global error',e.error||e.message));init();
+
+if('serviceWorker'in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW registration failed',e));let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(session)toast('新しい版があります。学習終了後に再読み込みしてください');else location.reload()})})}
