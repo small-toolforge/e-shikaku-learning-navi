@@ -144,6 +144,7 @@ function speakSyllabusCard(text) {
 
 function relatedQuestionById(id) {
   return QUESTIONS.find(question => question.id === id)
+    || (typeof SYLLABUS_QUESTIONS !== "undefined" ? SYLLABUS_QUESTIONS.find(question => question.id === id) : null)
     || (typeof APPLICATION_QUESTIONS !== "undefined" ? APPLICATION_QUESTIONS.find(question => question.id === id) : null)
     || (typeof ATLAS_QUESTIONS !== "undefined" ? ATLAS_QUESTIONS.find(question => question.id === id) : null);
 }
@@ -170,6 +171,7 @@ function bindSyllabusCardActions() {
 }
 
 function currentCardsDisplayVersion() {
+  if (typeof QUESTION_SET_VERSION !== "undefined") return QUESTION_SET_VERSION;
   if (typeof MACHINE_LEARNING_CARDS_VERSION !== "undefined") return MACHINE_LEARNING_CARDS_VERSION;
   if (typeof MATH_CARDS_VERSION !== "undefined") return MATH_CARDS_VERSION;
   if (typeof APPLICATION_CARDS_VERSION !== "undefined") return APPLICATION_CARDS_VERSION;
