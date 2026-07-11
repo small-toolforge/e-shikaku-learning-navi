@@ -16,6 +16,7 @@ SCRIPTS = [
     "assets/v0.4.0/atlas-data.js",
     "assets/v0.3.1/app-ui.js",
     "assets/v0.4.0/atlas-ui.js",
+    "assets/v0.4.0/atlas-segment-defaults.js",
     "assets/v0.3.1/app-lab.js",
     "assets/v0.3.1/app-management.js",
     "assets/v0.3.1/app-init.js",
@@ -53,6 +54,7 @@ def main() -> int:
         sw = (ROOT / "sw.js").read_text(encoding="utf-8")
         data = (ROOT / "assets/v0.4.0/atlas-data.js").read_text(encoding="utf-8")
         ui = (ROOT / "assets/v0.4.0/atlas-ui.js").read_text(encoding="utf-8")
+        segment_defaults = (ROOT / "assets/v0.4.0/atlas-segment-defaults.js").read_text(encoding="utf-8")
         init = (ROOT / "assets/v0.3.1/app-init.js").read_text(encoding="utf-8")
     except Exception as exc:
         ng.append(f"主要ファイルを読み込めません: {exc}")
@@ -77,6 +79,7 @@ def main() -> int:
         "シラバス索引": "SYLLABUS_INDEX" in data and data.count("syllabusItem(") >= 50,
         "論文図解タブ": 'button.textContent = "論文図解"' in ui,
         "スマホ分割表示": all(x in ui for x in ['data-segment="all"', 'data-segment="encoder"', 'data-segment="decoder"']),
+        "分割時の解説初期値": "maskedAttention" in segment_defaults and "selfAttention" in segment_defaults,
         "間隔反復への接続": "startSession(" in ui and "ATLAS_QUESTIONS" in init,
         "索引検索": "atlasSearch" in ui and "renderSyllabusIndex" in ui,
     }
@@ -105,9 +108,9 @@ def main() -> int:
     else:
         warn.append("Node.jsがないためJavaScript構文チェックを省略しました")
 
-    index_count = len(re.findall(r"syllabusItem\(", data)) - 1  # 関数定義を除く
+    index_count = len(re.findall(r"syllabusItem\(", data)) - 1
     ok.append(f"シラバス索引項目: {index_count}件")
-    ok.append(f"アトラス追加サイズ: {(len(data.encode()) + len(ui.encode())) // 1024}KB")
+    ok.append(f"アトラス追加サイズ: {(len(data.encode()) + len(ui.encode()) + len(segment_defaults.encode())) // 1024}KB")
     return report(ok, warn, ng)
 
 
