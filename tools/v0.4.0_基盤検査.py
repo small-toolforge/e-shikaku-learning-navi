@@ -20,8 +20,9 @@ SCRIPTS = [
     "assets/v0.3.1/app-data.js",
     "assets/v0.4.0/atlas-data.js",
     "assets/v0.4.0/application-atlas-data.js",
-    "assets/v0.4.0/cards/cards-04-deep-learning-application.js",
     "assets/v0.4.0/cards/cards-01-math.js",
+    "assets/v0.4.0/cards/cards-02-machine-learning.js",
+    "assets/v0.4.0/cards/cards-04-deep-learning-application.js",
     "assets/v0.3.1/app-ui.js",
     "assets/v0.4.0/atlas-ui.js",
     "assets/v0.4.0/application-atlas-ui.js",
@@ -70,6 +71,7 @@ def main() -> int:
         application_css = (ROOT / "assets/v0.4.0/application-atlas.css").read_text(encoding="utf-8")
         application_cards = (ROOT / "assets/v0.4.0/cards/cards-04-deep-learning-application.js").read_text(encoding="utf-8")
         math_cards = (ROOT / "assets/v0.4.0/cards/cards-01-math.js").read_text(encoding="utf-8")
+        machine_learning_cards = (ROOT / "assets/v0.4.0/cards/cards-02-machine-learning.js").read_text(encoding="utf-8")
         cards_ui = (ROOT / "assets/v0.4.0/cards/cards-ui.js").read_text(encoding="utf-8")
         cards_css = (ROOT / "assets/v0.4.0/cards/cards.css").read_text(encoding="utf-8")
         segment_defaults = (ROOT / "assets/v0.4.0/atlas-segment-defaults.js").read_text(encoding="utf-8")
@@ -98,6 +100,7 @@ def main() -> int:
         "Transformerアトラス版表示": 'ATLAS_VERSION = "v0.4.0-dev.1"' in data,
         "応用アトラス版表示": 'APPLICATION_ATLAS_VERSION = "v0.4.0-dev.2"' in application_data,
         "数学カード版表示": 'MATH_CARDS_VERSION = "v0.4.0-dev.4"' in math_cards,
+        "機械学習カード版表示": 'MACHINE_LEARNING_CARDS_VERSION = "v0.4.0-dev.5"' in machine_learning_cards,
         "Transformer原典": "Attention Is All You Need" in data,
         "Transformer図解ノード": "TRANSFORMER_NODES" in data and data.count("segment:") >= 16,
         "Transformer確認問題3問": data.count('id: "atlas-transformer-00') == 3,
@@ -119,9 +122,17 @@ def main() -> int:
         "数学用語カード41枚": math_cards.count('mathTerm("term-') == 41,
         "数学数式カード18枚": math_cards.count('mathFormula("formula-') == 18,
         "数学比較カード11枚": math_cards.count('mathCompare("compare-') == 11,
+        "機械学習用語カード76枚": machine_learning_cards.count('machineLearningTerm("term-') == 76,
+        "機械学習数式カード29枚": machine_learning_cards.count('machineLearningFormula("formula-') == 29,
+        "機械学習比較カード20枚": machine_learning_cards.count('machineLearningCompare("compare-') == 20,
+        "機械学習主要範囲": all(keyword in machine_learning_cards for keyword in [
+            "k-Nearest Neighbors", "Mahalanobis Distance", "Lasso Regression", "Support Vector Machine",
+            "Random Forest", "Principal Component Analysis", "Hierarchical Clustering", "Perplexity",
+        ]),
         "カード横断検索": "syllabusCardSearch" in cards_ui and "syllabusCardText" in cards_ui,
         "カード章フィルター": "syllabusCardMajor" in cards_ui and "syllabusCardMajorName" in cards_ui,
         "カード分野フィルター": "syllabusCardGroup" in cards_ui and "syllabusCardGroupName" in cards_ui,
+        "機械学習カード版を優先表示": "MACHINE_LEARNING_CARDS_VERSION" in cards_ui,
         "カードから図解へ接続": "data-card-atlas" in cards_ui,
         "カードから問題へ接続": "data-card-questions" in cards_ui,
         "カード英語読み上げ": "SpeechSynthesisUtterance" in cards_ui,
@@ -142,10 +153,10 @@ def main() -> int:
             ok.append(f"Service Worker対象: {rel}")
         else:
             ng.append(f"Service Worker対象から欠落: {rel}")
-    if "v0.4.0-dev4" in sw:
-        ok.append("Service Workerキャッシュ世代: v0.4.0-dev4")
+    if "v0.4.0-dev5" in sw:
+        ok.append("Service Workerキャッシュ世代: v0.4.0-dev5")
     else:
-        ng.append("Service Workerキャッシュ世代がv0.4.0-dev4ではありません")
+        ng.append("Service Workerキャッシュ世代がv0.4.0-dev5ではありません")
 
     node = shutil.which("node")
     if node:
@@ -161,11 +172,11 @@ def main() -> int:
     index_count = len(re.findall(r"syllabusItem\(", data)) - 1
     content_size = sum(len(text.encode()) for text in [
         data, ui, application_data, application_ui, segment_defaults,
-        application_cards, math_cards, cards_ui, cards_css,
+        application_cards, math_cards, machine_learning_cards, cards_ui, cards_css,
     ]) // 1024
     ok.append(f"シラバス索引項目: {index_count}件")
     ok.append(f"図解総数: {1 + len(application_ids)}件")
-    ok.append("追加カード: 154枚（応用84枚＋数学70枚）")
+    ok.append("追加カード: 279枚（数学70枚＋機械学習125枚＋応用84枚）")
     ok.append("応用追加問題: 28問（既存18問と合わせて46問想定）")
     ok.append(f"追加教材サイズ: {content_size}KB")
     return report(ok, warn, ng)
