@@ -31,3 +31,6 @@
   .application-compare-row b{padding-bottom:4px}
   .application-compare-row span{padding-top:4px}
 }
+.application-node-buttons{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.application-node-buttons button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:.78rem}
+.application-node-buttons button.active{border-color:var(--shu);background:var(--shu-soft);color:var(--shu);font-weight:700}
