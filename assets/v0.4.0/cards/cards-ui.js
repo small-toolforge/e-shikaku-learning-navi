@@ -1,6 +1,7 @@
 "use strict";
 
 let syllabusCardSearch = "";
+let syllabusCardMajor = "all";
 let syllabusCardGroup = "all";
 
 function syllabusCardTabs() {
@@ -36,6 +37,10 @@ function syllabusCardText(item) {
   return values.filter(Boolean).join(" ").toLocaleLowerCase("ja-JP");
 }
 
+function syllabusCardMajorName(item) {
+  return item.major || "基礎カード";
+}
+
 function syllabusCardGroupName(item) {
   return item.group || "基礎カード";
 }
@@ -43,6 +48,7 @@ function syllabusCardGroupName(item) {
 function filteredSyllabusCards() {
   const query = syllabusCardSearch.trim().toLocaleLowerCase("ja-JP");
   return currentCardCollection().filter(item => {
+    if (syllabusCardMajor !== "all" && syllabusCardMajorName(item) !== syllabusCardMajor) return false;
     if (syllabusCardGroup !== "all" && syllabusCardGroupName(item) !== syllabusCardGroup) return false;
     return !query || syllabusCardText(item).includes(query);
   });
@@ -113,14 +119,14 @@ function compareCardHtml(compare) {
 function renderSyllabusCardResults() {
   const list = filteredSyllabusCards();
   const total = currentCardCollection().length;
-  const applicationTotal = currentCardCollection().filter(item => item.major === "4. 深層学習の応用").length;
-  $("#syllabusCardCount").innerHTML = `<b>${list.length}枚を表示</b><span class="muted">全${total}枚／応用追加${applicationTotal}枚</span>`;
+  const syllabusTotal = currentCardCollection().filter(item => item.major).length;
+  $("#syllabusCardCount").innerHTML = `<b>${list.length}枚を表示</b><span class="muted">全${total}枚／シラバス拡充${syllabusTotal}枚</span>`;
   const html = cardTab === "formula"
     ? list.map(formulaCardHtml).join("")
     : cardTab === "compare"
       ? list.map(compareCardHtml).join("")
       : list.map(termCardHtml).join("");
-  $("#cardList").innerHTML = html || `<div class="card cards-empty"><b>該当するカードがありません</b><div class="muted">検索語または分野を変更してください。</div></div>`;
+  $("#cardList").innerHTML = html || `<div class="card cards-empty"><b>該当するカードがありません</b><div class="muted">検索語、章または分野を変更してください。</div></div>`;
   bindSyllabusCardActions();
 }
 
@@ -163,6 +169,12 @@ function bindSyllabusCardActions() {
   });
 }
 
+function currentCardsDisplayVersion() {
+  if (typeof MATH_CARDS_VERSION !== "undefined") return MATH_CARDS_VERSION;
+  if (typeof APPLICATION_CARDS_VERSION !== "undefined") return APPLICATION_CARDS_VERSION;
+  return "v0.4.0-dev";
+}
+
 const renderCardsBeforeSyllabusExpansion = renderCards;
 renderCards = function renderCardsWithSyllabusExpansion() {
   if (cardTab === "atlas") {
@@ -170,13 +182,20 @@ renderCards = function renderCardsWithSyllabusExpansion() {
     return;
   }
   const collection = currentCardCollection();
-  const groups = [...new Set(collection.map(syllabusCardGroupName))].sort((a, b) => a.localeCompare(b, "ja"));
+  const majors = [...new Set(collection.map(syllabusCardMajorName))].sort((a, b) => a.localeCompare(b, "ja"));
+  if (syllabusCardMajor !== "all" && !majors.includes(syllabusCardMajor)) syllabusCardMajor = "all";
+  const groupSource = syllabusCardMajor === "all"
+    ? collection
+    : collection.filter(item => syllabusCardMajorName(item) === syllabusCardMajor);
+  const groups = [...new Set(groupSource.map(syllabusCardGroupName))].sort((a, b) => a.localeCompare(b, "ja"));
   if (syllabusCardGroup !== "all" && !groups.includes(syllabusCardGroup)) syllabusCardGroup = "all";
+  const syllabusTotal = collection.filter(item => item.major).length;
   $("#view-cards").innerHTML = `${syllabusCardTabs()}
     <div class="card cards-toolbar">
-      <div><span class="tag ai">${esc(APPLICATION_CARDS_VERSION)}</span><span class="tag ok">4章カード84枚を追加</span></div>
+      <div><span class="tag ai">${esc(currentCardsDisplayVersion())}</span><span class="tag ok">シラバスカード${syllabusTotal}枚</span></div>
       <div class="cards-toolbar-row">
         <label><span class="label">カード検索</span><input id="syllabusCardSearch" type="search" value="${esc(syllabusCardSearch)}" placeholder="日本語・英語・フリガナ・数式を検索"></label>
+        <label><span class="label">章</span><select id="syllabusCardMajor"><option value="all">すべての章</option>${majors.map(major => `<option value="${esc(major)}" ${major === syllabusCardMajor ? "selected" : ""}>${esc(major)}</option>`).join("")}</select></label>
         <label><span class="label">分野</span><select id="syllabusCardGroup"><option value="all">すべての分野</option>${groups.map(group => `<option value="${esc(group)}" ${group === syllabusCardGroup ? "selected" : ""}>${esc(group)}</option>`).join("")}</select></label>
       </div>
       <div class="cards-count"><div id="syllabusCardCount"></div><button class="btn ghost small" id="syllabusCardReset">絞り込み解除</button></div>
@@ -185,7 +204,8 @@ renderCards = function renderCardsWithSyllabusExpansion() {
     <div id="cardList" class="cards-grid"></div>`;
   bindSyllabusCardTabs();
   $("#syllabusCardSearch").oninput = event => { syllabusCardSearch = event.target.value; renderSyllabusCardResults(); };
+  $("#syllabusCardMajor").onchange = event => { syllabusCardMajor = event.target.value; syllabusCardGroup = "all"; renderCards(); };
   $("#syllabusCardGroup").onchange = event => { syllabusCardGroup = event.target.value; renderSyllabusCardResults(); };
-  $("#syllabusCardReset").onclick = () => { syllabusCardSearch = ""; syllabusCardGroup = "all"; renderCards(); };
+  $("#syllabusCardReset").onclick = () => { syllabusCardSearch = ""; syllabusCardMajor = "all"; syllabusCardGroup = "all"; renderCards(); };
   renderSyllabusCardResults();
 };
