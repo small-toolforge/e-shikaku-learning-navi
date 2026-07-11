@@ -170,6 +170,7 @@ function bindSyllabusCardActions() {
 }
 
 function currentCardsDisplayVersion() {
+  if (typeof MACHINE_LEARNING_CARDS_VERSION !== "undefined") return MACHINE_LEARNING_CARDS_VERSION;
   if (typeof MATH_CARDS_VERSION !== "undefined") return MATH_CARDS_VERSION;
   if (typeof APPLICATION_CARDS_VERSION !== "undefined") return APPLICATION_CARDS_VERSION;
   return "v0.4.0-dev";
