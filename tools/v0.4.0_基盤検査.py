@@ -21,7 +21,8 @@ SCRIPTS = [
     "assets/v0.3.1/app-management.js",
     "assets/v0.3.1/app-init.js",
 ]
-REQUIRED = ["index.html", "sw.js", *CSS, *SCRIPTS]
+LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
+REQUIRED = ["index.html", "sw.js", *CSS, *SCRIPTS, LOCAL_LAUNCHER]
 
 
 class Inspector(HTMLParser):
@@ -56,6 +57,7 @@ def main() -> int:
         ui = (ROOT / "assets/v0.4.0/atlas-ui.js").read_text(encoding="utf-8")
         segment_defaults = (ROOT / "assets/v0.4.0/atlas-segment-defaults.js").read_text(encoding="utf-8")
         init = (ROOT / "assets/v0.3.1/app-init.js").read_text(encoding="utf-8")
+        launcher = (ROOT / LOCAL_LAUNCHER).read_text(encoding="utf-8")
     except Exception as exc:
         ng.append(f"主要ファイルを読み込めません: {exc}")
         return report(ok, warn, ng)
@@ -82,6 +84,8 @@ def main() -> int:
         "分割時の解説初期値": "maskedAttention" in segment_defaults and "selfAttention" in segment_defaults,
         "間隔反復への接続": "startSession(" in ui and "ATLAS_QUESTIONS" in init,
         "索引検索": "atlasSearch" in ui and "renderSyllabusIndex" in ui,
+        "ローカル確認の配信元固定": '--directory "%ROOT%"' in launcher,
+        "ローカル確認の端末内限定": "--bind 127.0.0.1" in launcher,
     }
     for name, passed in checks.items():
         (ok if passed else ng).append(f"{name}: {'OK' if passed else '不足'}")
