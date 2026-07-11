@@ -7,8 +7,13 @@ async function seed() {
     for (const question of SEED_QUESTIONS) {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
-    await putOne("meta", { key: "seedVersion", value: 2, at: Date.now() });
   }
+  if (version < 3 && typeof ATLAS_QUESTIONS !== "undefined") {
+    for (const question of ATLAS_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 3) await putOne("meta", { key: "seedVersion", value: 3, at: Date.now() });
 }
 
 async function init() {
