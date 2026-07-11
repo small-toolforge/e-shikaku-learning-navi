@@ -107,6 +107,9 @@ def main() -> int:
         "索引検索": "atlasSearch" in ui and "renderSyllabusIndex" in ui,
         "ローカル確認の配信元固定": '--directory "%ROOT%"' in launcher,
         "ローカル確認の端末内限定": "--bind 127.0.0.1" in launcher,
+        "ローカル確認CMDはASCIIのみ": launcher.isascii(),
+        "ローカル確認CMDはchcp非依存": "chcp" not in launcher.lower(),
+        "Anaconda候補を自動検出": "anaconda3\\python.exe" in launcher and "miniconda3\\python.exe" in launcher,
     }
     for name, passed in checks.items():
         (ok if passed else ng).append(f"{name}: {'OK' if passed else '不足'}")
