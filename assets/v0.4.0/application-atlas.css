@@ -1,0 +1,33 @@
+.application-atlas-select{margin-bottom:2px}
+.application-syllabus-tags{margin:8px 0 12px}
+.application-svg-wrap{overflow:auto;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#fff,#f8f7f1)}
+.application-svg{display:block;width:100%;min-width:690px;max-height:640px;min-height:360px}
+.application-node rect{fill:#fff;stroke:var(--ai);stroke-width:2;transition:fill .15s,stroke-width .15s}
+.application-node text{font-size:13px;font-weight:700;fill:var(--ink);pointer-events:none}
+.application-node.main rect{fill:var(--ai-soft)}
+.application-node.attention rect{fill:#e8f3ff;stroke:#1b6fae}
+.application-node.position rect{fill:#fff5d8;stroke:#956000}
+.application-node.special rect{fill:#f5eafb;stroke:#78449b}
+.application-node.skip rect{fill:#f3f0ff;stroke:#6655a8}
+.application-node.merge rect{fill:#faedec;stroke:var(--shu)}
+.application-node.output rect{fill:var(--ok-soft);stroke:var(--ok)}
+.application-node.input rect{fill:var(--mist);stroke:var(--sub)}
+.application-node.selected rect{stroke:var(--shu);stroke-width:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.14))}
+.application-node:focus{outline:none}.application-node:focus rect{stroke-dasharray:6 4}
+.application-edge path{fill:none;stroke:#777d86;stroke-width:2}
+.application-edge.dashed path{stroke-dasharray:7 6}
+.application-edge text{font-size:11px;fill:var(--sub);paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+.application-edge marker path,.application-svg marker path{fill:#777d86;stroke:none}
+.application-compare-table{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.application-compare-row{display:grid;grid-template-columns:minmax(120px,34%) 1fr;border-bottom:1px solid var(--line)}
+.application-compare-row:last-child{border-bottom:0}
+.application-compare-row b,.application-compare-row span{padding:10px 12px}
+.application-compare-row b{background:var(--mist)}
+.application-compare-row span{background:#fff}
+@media(max-width:600px){
+  .application-svg{min-width:620px;min-height:330px}
+  .application-svg-wrap{margin-left:-6px;margin-right:-6px}
+  .application-compare-row{grid-template-columns:1fr}
+  .application-compare-row b{padding-bottom:4px}
+  .application-compare-row span{padding-top:4px}
+}
