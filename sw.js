@@ -1,5 +1,5 @@
 /* E資格 学習ナビ - Service Worker v0.4.0 development */
-const CACHE_NAME="eshikaku-atlas-v0.4.0-dev3";
+const CACHE_NAME="eshikaku-atlas-v0.4.0-dev4";
 const ASSETS=[
   "./",
   "./index.html",
@@ -12,6 +12,7 @@ const ASSETS=[
   "./assets/v0.4.0/atlas-data.js",
   "./assets/v0.4.0/application-atlas-data.js",
   "./assets/v0.4.0/cards/cards-04-deep-learning-application.js",
+  "./assets/v0.4.0/cards/cards-01-math.js",
   "./assets/v0.3.1/app-ui.js",
   "./assets/v0.4.0/atlas-ui.js",
   "./assets/v0.4.0/application-atlas-ui.js",
