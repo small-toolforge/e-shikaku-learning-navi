@@ -63,6 +63,7 @@ def main() -> int:
         ui = (ROOT / "assets/v0.4.0/atlas-ui.js").read_text(encoding="utf-8")
         application_data = (ROOT / "assets/v0.4.0/application-atlas-data.js").read_text(encoding="utf-8")
         application_ui = (ROOT / "assets/v0.4.0/application-atlas-ui.js").read_text(encoding="utf-8")
+        application_css = (ROOT / "assets/v0.4.0/application-atlas.css").read_text(encoding="utf-8")
         segment_defaults = (ROOT / "assets/v0.4.0/atlas-segment-defaults.js").read_text(encoding="utf-8")
         init = (ROOT / "assets/v0.3.1/app-init.js").read_text(encoding="utf-8")
         launcher = (ROOT / LOCAL_LAUNCHER).read_text(encoding="utf-8")
@@ -99,6 +100,7 @@ def main() -> int:
         "応用確認問題28問": application_data.count('applicationQuestion("app-') == 28,
         "応用図解選択UI": "applicationAtlasSelect" in application_ui and "renderApplicationAtlas" in application_ui,
         "応用SVGノード解説": "applicationDiagramSvg" in application_ui and "applicationNodeExplanation" in application_ui,
+        "スマホ向け日本語ノード選択": "data-application-node-button" in application_ui and ".application-node-buttons" in application_css,
         "応用索引から図解へ接続": "applicationAtlasIdForItem" in application_ui and "data-open-atlas" in application_ui,
         "間隔反復への接続": "startSession(" in application_ui and "APPLICATION_QUESTIONS" in init,
         "追加問題のSeed": 'version < 4' in init and 'seedVersion", value: 4' in init,
