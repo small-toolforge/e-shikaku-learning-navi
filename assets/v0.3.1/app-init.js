@@ -13,7 +13,12 @@ async function seed() {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
   }
-  if (version < 3) await putOne("meta", { key: "seedVersion", value: 3, at: Date.now() });
+  if (version < 4 && typeof APPLICATION_QUESTIONS !== "undefined") {
+    for (const question of APPLICATION_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 4) await putOne("meta", { key: "seedVersion", value: 4, at: Date.now() });
 }
 
 async function init() {
