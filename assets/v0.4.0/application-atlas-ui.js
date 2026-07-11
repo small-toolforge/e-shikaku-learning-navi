@@ -183,7 +183,10 @@ function renderApplicationAtlas(atlas) {
       <p>${esc(atlas.summary)}</p>
       <div class="application-syllabus-tags">${atlas.syllabus.map(keyword => `<span class="tag ai">${esc(keyword)}</span>`).join("")}</div>
       ${applicationDiagramSvg(atlas, selected.id)}
-      <div class="smallnote">図のブロックをタップすると、発音・日本語訳・役割・試験での見分け方が切り替わります。</div>
+      <div class="application-node-buttons" aria-label="図解ブロック一覧">
+        ${atlas.nodes.map(node => `<button data-application-node-button="${esc(node.id)}" class="${node.id === selected.id ? "active" : ""}">${esc(node.ja)}</button>`).join("")}
+      </div>
+      <div class="smallnote">図のブロックまたは上の日本語ボタンを選ぶと、発音・日本語訳・役割・試験での見分け方が切り替わります。</div>
     </div>
     <div class="card atlas-explain" id="applicationAtlasExplain">${applicationNodeExplanation(selected)}</div>
     <div class="card">
@@ -201,15 +204,17 @@ function renderApplicationAtlas(atlas) {
       <div class="smallnote">図はシラバス学習用に構造を整理した自作図で、論文掲載図の画像転載ではありません。</div>
     </div>`;
 
+  const selectApplicationNode = id => {
+    applicationNodeSelection[atlas.id] = id;
+    $$("#atlasBody [data-application-node]").forEach(node => node.classList.toggle("selected", node.dataset.applicationNode === id));
+    $$("#atlasBody [data-application-node-button]").forEach(button => button.classList.toggle("active", button.dataset.applicationNodeButton === id));
+    const node = atlas.nodes.find(item => item.id === id);
+    $("#applicationAtlasExplain").innerHTML = applicationNodeExplanation(node);
+    $("#applicationAtlasExplain").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
   $$("#atlasBody [data-application-node]").forEach(element => {
-    const select = () => {
-      const id = element.dataset.applicationNode;
-      applicationNodeSelection[atlas.id] = id;
-      $$("#atlasBody [data-application-node]").forEach(node => node.classList.toggle("selected", node.dataset.applicationNode === id));
-      const node = atlas.nodes.find(item => item.id === id);
-      $("#applicationAtlasExplain").innerHTML = applicationNodeExplanation(node);
-      $("#applicationAtlasExplain").scrollIntoView({ behavior: "smooth", block: "nearest" });
-    };
+    const select = () => selectApplicationNode(element.dataset.applicationNode);
     element.onclick = select;
     element.onkeydown = event => {
       if (event.key === "Enter" || event.key === " ") {
@@ -217,6 +222,9 @@ function renderApplicationAtlas(atlas) {
         select();
       }
     };
+  });
+  $$("#atlasBody [data-application-node-button]").forEach(button => {
+    button.onclick = () => selectApplicationNode(button.dataset.applicationNodeButton);
   });
 
   $("#applicationAtlasQuiz").onclick = () => {
