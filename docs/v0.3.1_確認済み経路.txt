@@ -1,3 +1,0 @@
-iPhone Safari/PWA -> Windows 11 Edge: JSON移行成功
-
-iPhone Safari/PWA -> Android Chrome: JSON移行成功
