@@ -171,6 +171,7 @@ function bindSyllabusCardActions() {
 }
 
 function currentCardsDisplayVersion() {
+  if (typeof DEEP_LEARNING_BASE_CARDS_VERSION !== "undefined") return DEEP_LEARNING_BASE_CARDS_VERSION;
   if (typeof QUESTION_SET_VERSION !== "undefined") return QUESTION_SET_VERSION;
   if (typeof MACHINE_LEARNING_CARDS_VERSION !== "undefined") return MACHINE_LEARNING_CARDS_VERSION;
   if (typeof MATH_CARDS_VERSION !== "undefined") return MATH_CARDS_VERSION;
