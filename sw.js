@@ -10,6 +10,7 @@ const ASSETS=[
   "./assets/v0.4.0/atlas-data.js",
   "./assets/v0.3.1/app-ui.js",
   "./assets/v0.4.0/atlas-ui.js",
+  "./assets/v0.4.0/atlas-segment-defaults.js",
   "./assets/v0.3.1/app-lab.js",
   "./assets/v0.3.1/app-management.js",
   "./assets/v0.3.1/app-init.js",
