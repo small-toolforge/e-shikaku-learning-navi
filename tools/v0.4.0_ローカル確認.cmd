@@ -1,45 +1,68 @@
 @echo off
 setlocal EnableExtensions
-chcp 65001 >nul
 
 set "ROOT=%~dp0.."
 set "PORT=8000"
 set "URL=http://127.0.0.1:%PORT%/"
 
-echo === E資格 学習ナビ v0.4.0 ローカル確認 ===
-echo 配信フォルダ: %ROOT%
-echo 接続先      : %URL%
+echo ========================================
+echo E-Shikaku Navi v0.4.0 local preview
+echo Root: %ROOT%
+echo URL : %URL%
+echo Stop: Ctrl+C
+echo ========================================
 echo.
-echo Edgeで上記URLを開いてください。
-echo 終了するときは、この画面で Ctrl+C を押します。
-echo.
 
-where py >nul 2>nul
-if not errorlevel 1 (
-  py -3 -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
-  goto :end
-)
+where python.exe >nul 2>nul
+if not errorlevel 1 goto run_path_python
 
-where python >nul 2>nul
-if not errorlevel 1 (
-  python -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
-  goto :end
-)
+if exist "%USERPROFILE%\anaconda3\python.exe" goto run_user_anaconda
+if exist "%USERPROFILE%\miniconda3\python.exe" goto run_user_miniconda
+if exist "%LOCALAPPDATA%\anaconda3\python.exe" goto run_local_anaconda
+if exist "%LOCALAPPDATA%\miniconda3\python.exe" goto run_local_miniconda
+if exist "C:\ProgramData\anaconda3\python.exe" goto run_programdata_anaconda
+if exist "C:\ProgramData\miniconda3\python.exe" goto run_programdata_miniconda
 
-if exist "%USERPROFILE%\anaconda3\python.exe" (
-  "%USERPROFILE%\anaconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
-  goto :end
-)
+goto python_not_found
 
-if exist "%USERPROFILE%\miniconda3\python.exe" (
-  "%USERPROFILE%\miniconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
-  goto :end
-)
+:run_path_python
+python.exe -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
 
-echo [NG] Pythonを見つけられませんでした。
-echo Anaconda Promptで次を実行してください。
-echo   python -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+:run_user_anaconda
+"%USERPROFILE%\anaconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
 
-:end
+:run_user_miniconda
+"%USERPROFILE%\miniconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
+
+:run_local_anaconda
+"%LOCALAPPDATA%\anaconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
+
+:run_local_miniconda
+"%LOCALAPPDATA%\miniconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
+
+:run_programdata_anaconda
+"C:\ProgramData\anaconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
+
+:run_programdata_miniconda
+"C:\ProgramData\miniconda3\python.exe" -m http.server %PORT% --bind 127.0.0.1 --directory "%ROOT%"
+goto finished
+
+:python_not_found
+echo [ERROR] Python was not found.
+echo Open Anaconda Prompt, move to this tools folder, and run:
+echo python -m http.server 8000 --bind 127.0.0.1 --directory ..
 echo.
 pause
+exit /b 1
+
+:finished
+echo.
+echo The local preview has stopped.
+pause
+endlocal
