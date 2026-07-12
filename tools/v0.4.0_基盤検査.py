@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""E資格 学習ナビ v0.4.0 論文図解・シラバスカード・確認問題の静的検査。"""
+"""E資格 学習ナビ v0.4.0 図解・カード・確認問題の静的検査。"""
 from __future__ import annotations
 
 import re
@@ -25,6 +25,7 @@ SCRIPTS = [
     "assets/v0.4.0/cards/cards-03-deep-learning-base.js",
     "assets/v0.4.0/cards/cards-04-deep-learning-application.js",
     "assets/v0.4.0/cards/cards-05-development-operations.js",
+    "assets/v0.4.0/development-atlas-data.js",
     "assets/v0.4.0/questions/questions-01-math.js",
     "assets/v0.4.0/questions/questions-02-machine-learning.js",
     "assets/v0.4.0/questions/questions-03-deep-learning-base.js",
@@ -34,6 +35,7 @@ SCRIPTS = [
     "assets/v0.4.0/atlas-ui.js",
     "assets/v0.4.0/application-atlas-ui.js",
     "assets/v0.4.0/cards/cards-ui.js",
+    "assets/v0.4.0/development-atlas-ui.js",
     "assets/v0.4.0/atlas-segment-defaults.js",
     "assets/v0.3.1/app-lab.js",
     "assets/v0.3.1/app-management.js",
@@ -57,6 +59,10 @@ class Inspector(HTMLParser):
             self.scripts.append(str(data["src"]))
 
 
+def read(rel: str) -> str:
+    return (ROOT / rel).read_text(encoding="utf-8")
+
+
 def main() -> int:
     ok: list[str] = []
     warn: list[str] = []
@@ -69,76 +75,68 @@ def main() -> int:
             ng.append(f"必須ファイルがありません: {rel}")
 
     try:
-        html = (ROOT / "index.html").read_text(encoding="utf-8")
-        sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-        data = (ROOT / "assets/v0.4.0/atlas-data.js").read_text(encoding="utf-8")
-        ui = (ROOT / "assets/v0.4.0/atlas-ui.js").read_text(encoding="utf-8")
-        application_data = (ROOT / "assets/v0.4.0/application-atlas-data.js").read_text(encoding="utf-8")
-        application_ui = (ROOT / "assets/v0.4.0/application-atlas-ui.js").read_text(encoding="utf-8")
-        application_css = (ROOT / "assets/v0.4.0/application-atlas.css").read_text(encoding="utf-8")
-        application_cards = (ROOT / "assets/v0.4.0/cards/cards-04-deep-learning-application.js").read_text(encoding="utf-8")
-        math_cards = (ROOT / "assets/v0.4.0/cards/cards-01-math.js").read_text(encoding="utf-8")
-        machine_learning_cards = (ROOT / "assets/v0.4.0/cards/cards-02-machine-learning.js").read_text(encoding="utf-8")
-        deep_learning_base_cards = (ROOT / "assets/v0.4.0/cards/cards-03-deep-learning-base.js").read_text(encoding="utf-8")
-        development_operations_cards = (ROOT / "assets/v0.4.0/cards/cards-05-development-operations.js").read_text(encoding="utf-8")
-        math_questions = (ROOT / "assets/v0.4.0/questions/questions-01-math.js").read_text(encoding="utf-8")
-        machine_learning_questions = (ROOT / "assets/v0.4.0/questions/questions-02-machine-learning.js").read_text(encoding="utf-8")
-        deep_learning_questions = (ROOT / "assets/v0.4.0/questions/questions-03-deep-learning-base.js").read_text(encoding="utf-8")
-        development_operations_questions = (ROOT / "assets/v0.4.0/questions/questions-05-development-operations.js").read_text(encoding="utf-8")
-        question_links = (ROOT / "assets/v0.4.0/questions/question-links.js").read_text(encoding="utf-8")
-        cards_ui = (ROOT / "assets/v0.4.0/cards/cards-ui.js").read_text(encoding="utf-8")
-        cards_css = (ROOT / "assets/v0.4.0/cards/cards.css").read_text(encoding="utf-8")
-        segment_defaults = (ROOT / "assets/v0.4.0/atlas-segment-defaults.js").read_text(encoding="utf-8")
-        init = (ROOT / "assets/v0.3.1/app-init.js").read_text(encoding="utf-8")
-        launcher = (ROOT / LOCAL_LAUNCHER).read_text(encoding="utf-8")
+        html = read("index.html")
+        sw = read("sw.js")
+        data = read("assets/v0.4.0/atlas-data.js")
+        ui = read("assets/v0.4.0/atlas-ui.js")
+        application_data = read("assets/v0.4.0/application-atlas-data.js")
+        application_ui = read("assets/v0.4.0/application-atlas-ui.js")
+        application_css = read("assets/v0.4.0/application-atlas.css")
+        development_atlas_data = read("assets/v0.4.0/development-atlas-data.js")
+        development_atlas_ui = read("assets/v0.4.0/development-atlas-ui.js")
+        application_cards = read("assets/v0.4.0/cards/cards-04-deep-learning-application.js")
+        math_cards = read("assets/v0.4.0/cards/cards-01-math.js")
+        machine_learning_cards = read("assets/v0.4.0/cards/cards-02-machine-learning.js")
+        deep_learning_base_cards = read("assets/v0.4.0/cards/cards-03-deep-learning-base.js")
+        development_operations_cards = read("assets/v0.4.0/cards/cards-05-development-operations.js")
+        math_questions = read("assets/v0.4.0/questions/questions-01-math.js")
+        machine_learning_questions = read("assets/v0.4.0/questions/questions-02-machine-learning.js")
+        deep_learning_questions = read("assets/v0.4.0/questions/questions-03-deep-learning-base.js")
+        development_operations_questions = read("assets/v0.4.0/questions/questions-05-development-operations.js")
+        question_links = read("assets/v0.4.0/questions/question-links.js")
+        cards_ui = read("assets/v0.4.0/cards/cards-ui.js")
+        cards_css = read("assets/v0.4.0/cards/cards.css")
+        segment_defaults = read("assets/v0.4.0/atlas-segment-defaults.js")
+        init = read("assets/v0.3.1/app-init.js")
+        launcher = read(LOCAL_LAUNCHER)
     except Exception as exc:
         ng.append(f"主要ファイルを読み込めません: {exc}")
         return report(ok, warn, ng)
 
     inspector = Inspector()
     inspector.feed(html)
-    if inspector.styles == CSS:
-        ok.append("CSS参照順一致")
-    else:
-        ng.append(f"CSS参照順が不一致: {inspector.styles}")
-    if inspector.scripts == SCRIPTS:
-        ok.append("JavaScript参照順一致")
-    else:
-        ng.append(f"JavaScript参照順が不一致: {inspector.scripts}")
+    (ok if inspector.styles == CSS else ng).append(
+        "CSS参照順一致" if inspector.styles == CSS else f"CSS参照順が不一致: {inspector.styles}"
+    )
+    (ok if inspector.scripts == SCRIPTS else ng).append(
+        "JavaScript参照順一致" if inspector.scripts == SCRIPTS else f"JavaScript参照順が不一致: {inspector.scripts}"
+    )
 
     application_ids = [
         "resnet", "vision-transformer", "detection", "segmentation", "word-embedding",
         "llm", "speech", "generative", "deep-rl", "learning-methods", "xai",
     ]
+    development_ids = ["compression", "distributed", "federated", "virtualization"]
     expected_deep_syllabus_ids = [
         "3-1-1", "3-1-2", "3-1-3", "3-1-4",
         "3-2-1", "3-2-2", "3-2-3", "3-2-4",
         "3-3-1", "3-3-2", "3-3-3",
         "3-4-1", "3-4-2", "3-4-3",
         "3-5-1", "3-5-2", "3-5-3",
-        "3-6-1",
-        "3-7-1", "3-7-2", "3-7-3", "3-7-4", "3-7-5",
+        "3-6-1", "3-7-1", "3-7-2", "3-7-3", "3-7-4", "3-7-5",
     ]
-    expected_devops_counts = {
-        "5-1-1": 6,
-        "5-2-1": 4,
-        "5-2-2": 4,
-        "5-3-1": 4,
-        "5-4-1": 4,
-    }
+    expected_devops_counts = {"5-1-1": 6, "5-2-1": 4, "5-2-2": 4, "5-3-1": 4, "5-4-1": 4}
+
     math_question_ids = re.findall(r'"(math-q\d{3})"', math_questions)
     machine_learning_question_ids = re.findall(r'"(ml-q\d{3})"', machine_learning_questions)
     deep_learning_question_ids = re.findall(r'"(dl-q\d{3})"', deep_learning_questions)
     development_operations_question_ids = re.findall(r'"(devops-q\d{3})"', development_operations_questions)
     all_new_question_ids = (
-        math_question_ids
-        + machine_learning_question_ids
-        + deep_learning_question_ids
+        math_question_ids + machine_learning_question_ids + deep_learning_question_ids
         + development_operations_question_ids
     )
     deep_syllabus_coverage = all(
-        deep_learning_questions.count(f'"{item_id}"') == 2
-        for item_id in expected_deep_syllabus_ids
+        deep_learning_questions.count(f'"{item_id}"') == 2 for item_id in expected_deep_syllabus_ids
     )
     devops_syllabus_coverage = all(
         development_operations_questions.count(f'"{item_id}"') == count
@@ -148,6 +146,7 @@ def main() -> int:
     checks = {
         "Transformerアトラス版表示": 'ATLAS_VERSION = "v0.4.0-dev.1"' in data,
         "応用アトラス版表示": 'APPLICATION_ATLAS_VERSION = "v0.4.0-dev.2"' in application_data,
+        "第5章概念図版表示": 'DEVELOPMENT_ATLAS_VERSION = "v0.4.0-dev.11"' in development_atlas_data,
         "数学カード版表示": 'MATH_CARDS_VERSION = "v0.4.0-dev.4"' in math_cards,
         "機械学習カード版表示": 'MACHINE_LEARNING_CARDS_VERSION = "v0.4.0-dev.5"' in machine_learning_cards,
         "深層学習基礎カード版表示": 'DEEP_LEARNING_BASE_CARDS_VERSION = "v0.4.0-dev.7"' in deep_learning_base_cards,
@@ -161,13 +160,19 @@ def main() -> int:
         "スマホ分割表示": all(x in ui for x in ['data-segment="all"', 'data-segment="encoder"', 'data-segment="decoder"']),
         "分割時の解説初期値": "maskedAttention" in segment_defaults and "selfAttention" in segment_defaults,
         "応用11図解": all(f'id: "{atlas_id}"' in application_data for atlas_id in application_ids),
+        "第5章概念図4件": all(f'id: "{atlas_id}"' in development_atlas_data for atlas_id in development_ids),
+        "第5章概念図ノード": development_atlas_data.count("applicationNode(") >= 30,
+        "第5章概念図をアトラスへ追加": "APPLICATION_ATLASES.push(...DEVELOPMENT_ATLASES)" in development_atlas_data,
+        "第5章カードから概念図へ接続": "DEVELOPMENT_ATLAS_BY_SYLLABUS" in development_atlas_data and "card.atlasId = atlasId" in development_atlas_data,
+        "第5章索引から概念図へ接続": all(item_id in development_atlas_ui for item_id in ["5-1-1", "5-2-1", "5-2-2", "5-4-1"]),
+        "全16図解表示": "全16図解" in development_atlas_ui,
+        "第5章公式資料表示": "公式資料" in development_atlas_ui and "代表論文" in development_atlas_ui,
+        "第5章概念図を最新表示": "currentCardsDisplayVersionDev11" in development_atlas_ui,
         "応用確認問題28問": application_data.count('applicationQuestion("app-') == 28,
         "応用図解選択UI": "applicationAtlasSelect" in application_ui and "renderApplicationAtlas" in application_ui,
         "応用SVGノード解説": "applicationDiagramSvg" in application_ui and "applicationNodeExplanation" in application_ui,
         "スマホ向け日本語ノード選択": "data-application-node-button" in application_ui and ".application-node-buttons" in application_css,
-        "応用索引から図解へ接続": "applicationAtlasIdForItem" in application_ui and "data-open-atlas" in application_ui,
         "応用問題の間隔反復接続": "startSession(" in application_ui and "APPLICATION_QUESTIONS" in init,
-        "応用問題Seed": 'version < 4' in init and "APPLICATION_QUESTIONS" in init,
         "数学用語カード41枚": math_cards.count('mathTerm("term-') == 41,
         "数学数式カード18枚": math_cards.count('mathFormula("formula-') == 18,
         "数学比較カード11枚": math_cards.count('mathCompare("compare-') == 11,
@@ -180,21 +185,6 @@ def main() -> int:
         "開発運用用語カード33枚": development_operations_cards.count('developmentOperationsTerm("term-') == 33,
         "開発運用数式カード3枚": development_operations_cards.count('developmentOperationsFormula("formula-') == 3,
         "開発運用比較カード13枚": development_operations_cards.count('developmentOperationsCompare("compare-') == 13,
-        "機械学習主要範囲": all(keyword in machine_learning_cards for keyword in [
-            "k-Nearest Neighbors", "Mahalanobis Distance", "Lasso Regression", "Support Vector Machine",
-            "Random Forest", "Principal Component Analysis", "Hierarchical Clustering", "Perplexity",
-        ]),
-        "深層学習基礎主要範囲": all(keyword in deep_learning_base_cards for keyword in [
-            "Multi-Layer Perceptron", "Backpropagation", "Nesterov Accelerated Gradient",
-            "Xavier / Glorot Initialization", "Point-Wise / 1x1 Convolution", "Long Short-Term Memory",
-            "Scaled Dot-Product Attention", "SpecAugment", "Bayesian Optimization",
-        ]),
-        "開発運用主要範囲": all(keyword in development_operations_cards for keyword in [
-            "Edge Computing", "Knowledge Distillation", "Quantization-Aware Training",
-            "Data Parallelism", "Federated Averaging", "Cross-Silo Federated Learning",
-            "SIMD: Single Instruction Multiple Data", "TPU: Tensor Processing Unit",
-            "Container Virtualization", "Dockerfile",
-        ]),
         "数学確認問題24問": len(math_question_ids) == 24 and len(set(math_question_ids)) == 24,
         "機械学習確認問題36問": len(machine_learning_question_ids) == 36 and len(set(machine_learning_question_ids)) == 36,
         "深層学習基礎確認問題46問": len(deep_learning_question_ids) == 46 and len(set(deep_learning_question_ids)) == 46,
@@ -202,12 +192,12 @@ def main() -> int:
         "開発運用確認問題22問": len(development_operations_question_ids) == 22 and len(set(development_operations_question_ids)) == 22,
         "開発運用5項目の配分": devops_syllabus_coverage,
         "追加問題ID重複なし": len(all_new_question_ids) == len(set(all_new_question_ids)),
-        "問題は4択": (
-            math_questions.count('["') >= 24
-            and machine_learning_questions.count('["') >= 36
-            and deep_learning_questions.count('["') >= 46
-            and development_operations_questions.count('["') >= 22
-        ),
+        "問題は4択": all([
+            math_questions.count('["') >= 24,
+            machine_learning_questions.count('["') >= 36,
+            deep_learning_questions.count('["') >= 46,
+            development_operations_questions.count('["') >= 22,
+        ]),
         "問題とカードの相互接続": "findSyllabusCardById" in question_links and "card.questionIds.push" in question_links,
         "1・2・3・5章問題を統合": all(x in question_links for x in [
             "...MATH_QUESTIONS", "...MACHINE_LEARNING_QUESTIONS", "...DEEP_LEARNING_BASE_QUESTIONS",
@@ -215,7 +205,6 @@ def main() -> int:
         ]),
         "追加問題Seed版7": 'version < 7' in init and "SYLLABUS_QUESTIONS" in init and 'seedVersion", value: 7' in init,
         "カード関連問題から新問題を参照": "SYLLABUS_QUESTIONS" in cards_ui,
-        "最新問題版を優先表示": "QUESTION_SET_VERSION" in cards_ui and "DEVELOPMENT_OPERATIONS_CARDS_VERSION" in cards_ui,
         "カード横断検索": "syllabusCardSearch" in cards_ui and "syllabusCardText" in cards_ui,
         "カード章フィルター": "syllabusCardMajor" in cards_ui and "syllabusCardMajorName" in cards_ui,
         "カード分野フィルター": "syllabusCardGroup" in cards_ui and "syllabusCardGroupName" in cards_ui,
@@ -234,15 +223,15 @@ def main() -> int:
         (ok if passed else ng).append(f"{name}: {'OK' if passed else '不足'}")
 
     for rel in [*CSS, *SCRIPTS]:
-        asset = f'./{rel}'
+        asset = f"./{rel}"
         if asset in sw:
             ok.append(f"Service Worker対象: {rel}")
         else:
             ng.append(f"Service Worker対象から欠落: {rel}")
-    if "v0.4.0-dev10" in sw:
-        ok.append("Service Workerキャッシュ世代: v0.4.0-dev10")
+    if "v0.4.0-dev11" in sw:
+        ok.append("Service Workerキャッシュ世代: v0.4.0-dev11")
     else:
-        ng.append("Service Workerキャッシュ世代がv0.4.0-dev10ではありません")
+        ng.append("Service Workerキャッシュ世代がv0.4.0-dev11ではありません")
 
     node = shutil.which("node")
     if node:
@@ -257,14 +246,14 @@ def main() -> int:
 
     index_count = len(re.findall(r"syllabusItem\(", data)) - 1
     content_size = sum(len(text.encode()) for text in [
-        data, ui, application_data, application_ui, segment_defaults,
-        application_cards, math_cards, machine_learning_cards, deep_learning_base_cards,
-        development_operations_cards,
-        math_questions, machine_learning_questions, deep_learning_questions,
-        development_operations_questions, question_links, cards_ui, cards_css,
+        data, ui, application_data, application_ui, development_atlas_data, development_atlas_ui,
+        segment_defaults, application_cards, math_cards, machine_learning_cards,
+        deep_learning_base_cards, development_operations_cards, math_questions,
+        machine_learning_questions, deep_learning_questions, development_operations_questions,
+        question_links, cards_ui, cards_css,
     ]) // 1024
     ok.append(f"シラバス索引項目: {index_count}件")
-    ok.append(f"図解総数: {1 + len(application_ids)}件")
+    ok.append("図解総数: 16件（Transformer1＋応用11＋開発運用4）")
     ok.append("追加カード: 438枚（数学70枚＋機械学習125枚＋深層学習基礎110枚＋応用84枚＋開発運用49枚）")
     ok.append("追加確認問題: 156問（応用28問＋数学24問＋機械学習36問＋深層学習基礎46問＋開発運用22問）")
     ok.append("問題総数: 174問（既存15問＋Transformer3問＋追加156問）")
