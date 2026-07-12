@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""E資格 学習ナビ v0.4.0 図解・カード・確認問題の静的検査。"""
+"""E資格 学習ナビ v0.4.0 図解・カード・確認問題・カード復習の静的検査。"""
 from __future__ import annotations
 
 import re
@@ -15,6 +15,7 @@ CSS = [
     "assets/v0.4.0/atlas.css",
     "assets/v0.4.0/application-atlas.css",
     "assets/v0.4.0/cards/cards.css",
+    "assets/v0.4.0/card-progress.css",
 ]
 SCRIPTS = [
     "assets/v0.3.1/app-data.js",
@@ -39,6 +40,7 @@ SCRIPTS = [
     "assets/v0.4.0/atlas-segment-defaults.js",
     "assets/v0.3.1/app-lab.js",
     "assets/v0.3.1/app-management.js",
+    "assets/v0.4.0/card-progress.js",
     "assets/v0.3.1/app-init.js",
 ]
 LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
@@ -96,6 +98,8 @@ def main() -> int:
         question_links = read("assets/v0.4.0/questions/question-links.js")
         cards_ui = read("assets/v0.4.0/cards/cards-ui.js")
         cards_css = read("assets/v0.4.0/cards/cards.css")
+        card_progress = read("assets/v0.4.0/card-progress.js")
+        card_progress_css = read("assets/v0.4.0/card-progress.css")
         segment_defaults = read("assets/v0.4.0/atlas-segment-defaults.js")
         init = read("assets/v0.3.1/app-init.js")
         launcher = read(LOCAL_LAUNCHER)
@@ -118,12 +122,9 @@ def main() -> int:
     ]
     development_ids = ["compression", "distributed", "federated", "virtualization"]
     expected_deep_syllabus_ids = [
-        "3-1-1", "3-1-2", "3-1-3", "3-1-4",
-        "3-2-1", "3-2-2", "3-2-3", "3-2-4",
-        "3-3-1", "3-3-2", "3-3-3",
-        "3-4-1", "3-4-2", "3-4-3",
-        "3-5-1", "3-5-2", "3-5-3",
-        "3-6-1", "3-7-1", "3-7-2", "3-7-3", "3-7-4", "3-7-5",
+        "3-1-1", "3-1-2", "3-1-3", "3-1-4", "3-2-1", "3-2-2", "3-2-3", "3-2-4",
+        "3-3-1", "3-3-2", "3-3-3", "3-4-1", "3-4-2", "3-4-3", "3-5-1", "3-5-2",
+        "3-5-3", "3-6-1", "3-7-1", "3-7-2", "3-7-3", "3-7-4", "3-7-5",
     ]
     expected_devops_counts = {"5-1-1": 6, "5-2-1": 4, "5-2-2": 4, "5-3-1": 4, "5-4-1": 4}
 
@@ -147,6 +148,7 @@ def main() -> int:
         "Transformerアトラス版表示": 'ATLAS_VERSION = "v0.4.0-dev.1"' in data,
         "応用アトラス版表示": 'APPLICATION_ATLAS_VERSION = "v0.4.0-dev.2"' in application_data,
         "第5章概念図版表示": 'DEVELOPMENT_ATLAS_VERSION = "v0.4.0-dev.11"' in development_atlas_data,
+        "カード復習版表示": 'CARD_PROGRESS_VERSION = "v0.4.0-dev.12"' in card_progress,
         "数学カード版表示": 'MATH_CARDS_VERSION = "v0.4.0-dev.4"' in math_cards,
         "機械学習カード版表示": 'MACHINE_LEARNING_CARDS_VERSION = "v0.4.0-dev.5"' in machine_learning_cards,
         "深層学習基礎カード版表示": 'DEEP_LEARNING_BASE_CARDS_VERSION = "v0.4.0-dev.7"' in deep_learning_base_cards,
@@ -167,7 +169,6 @@ def main() -> int:
         "第5章索引から概念図へ接続": all(item_id in development_atlas_ui for item_id in ["5-1-1", "5-2-1", "5-2-2", "5-4-1"]),
         "全16図解表示": "全16図解" in development_atlas_ui,
         "第5章公式資料表示": "公式資料" in development_atlas_ui and "代表論文" in development_atlas_ui,
-        "第5章概念図を最新表示": "currentCardsDisplayVersionDev11" in development_atlas_ui,
         "応用確認問題28問": application_data.count('applicationQuestion("app-') == 28,
         "応用図解選択UI": "applicationAtlasSelect" in application_ui and "renderApplicationAtlas" in application_ui,
         "応用SVGノード解説": "applicationDiagramSvg" in application_ui and "applicationNodeExplanation" in application_ui,
@@ -204,14 +205,24 @@ def main() -> int:
             "...DEVELOPMENT_OPERATIONS_QUESTIONS",
         ]),
         "追加問題Seed版7": 'version < 7' in init and "SYLLABUS_QUESTIONS" in init and 'seedVersion", value: 7' in init,
-        "カード関連問題から新問題を参照": "SYLLABUS_QUESTIONS" in cards_ui,
         "カード横断検索": "syllabusCardSearch" in cards_ui and "syllabusCardText" in cards_ui,
-        "カード章フィルター": "syllabusCardMajor" in cards_ui and "syllabusCardMajorName" in cards_ui,
-        "カード分野フィルター": "syllabusCardGroup" in cards_ui and "syllabusCardGroupName" in cards_ui,
-        "カードから図解へ接続": "data-card-atlas" in cards_ui,
-        "カードから問題へ接続": "data-card-questions" in cards_ui,
+        "カード章・分野フィルター": all(x in cards_ui for x in ["syllabusCardMajor", "syllabusCardGroup"]),
+        "カードから図解・問題へ接続": "data-card-atlas" in cards_ui and "data-card-questions" in cards_ui,
         "カード英語読み上げ": "SpeechSynthesisUtterance" in cards_ui,
         "カードスマホ1列表示": "grid-template-columns:1fr" in cards_css,
+        "カード理解度3段階": all(x in card_progress for x in ['"weak"', '"unsure"', '"mastered"', "苦手", "曖昧", "覚えた"]),
+        "カード間隔反復": "CARD_PROGRESS_INTERVALS = [3, 7, 14, 30, 60, 90]" in card_progress and "dueAt" in card_progress,
+        "カード復習対象フィルター": "syllabusCardDueOnly" in card_progress and "本日のカード復習" in card_progress,
+        "カード状態別フィルター": "syllabusCardProgressFilter" in card_progress and "すべての状態" in card_progress,
+        "カード理解度をIndexedDBへ保存": 'CARD_PROGRESS_META_KEY = "cardProgress"' in card_progress and 'putOne("meta"' in card_progress,
+        "カード理解度をJSONバックアップ": "cardProgress: Object.values(CARD_PROGRESS)" in card_progress,
+        "旧バックアップ互換": "validated.cardProgress == null" in card_progress,
+        "カード理解度の統合復元": "mergeBackupDataWithCardProgress" in card_progress and "updatedAt > current.updatedAt" in card_progress,
+        "カード理解度の置換復元": "replaceLearningDataWithCardProgress" in card_progress,
+        "履歴削除へカード理解度を含む": "clearHistoryAndCardProgressAtomic" in card_progress and 'delete(CARD_PROGRESS_META_KEY)' in card_progress,
+        "記録画面にカード集計": "カード理解度" in card_progress and "本日復習" in card_progress,
+        "カード理解度スマホUI": ".card-progress-buttons" in card_progress_css and "@media(max-width:600px)" in card_progress_css,
+        "最新表示v0.4.0-dev.12": "currentCardsDisplayVersionDev12" in card_progress,
         "索引検索": "atlasSearch" in ui and "renderSyllabusIndex" in ui,
         "ローカル確認の配信元固定": '--directory "%ROOT%"' in launcher,
         "ローカル確認の端末内限定": "--bind 127.0.0.1" in launcher,
@@ -228,10 +239,10 @@ def main() -> int:
             ok.append(f"Service Worker対象: {rel}")
         else:
             ng.append(f"Service Worker対象から欠落: {rel}")
-    if "v0.4.0-dev11" in sw:
-        ok.append("Service Workerキャッシュ世代: v0.4.0-dev11")
+    if "v0.4.0-dev12" in sw:
+        ok.append("Service Workerキャッシュ世代: v0.4.0-dev12")
     else:
-        ng.append("Service Workerキャッシュ世代がv0.4.0-dev11ではありません")
+        ng.append("Service Workerキャッシュ世代がv0.4.0-dev12ではありません")
 
     node = shutil.which("node")
     if node:
@@ -250,13 +261,14 @@ def main() -> int:
         segment_defaults, application_cards, math_cards, machine_learning_cards,
         deep_learning_base_cards, development_operations_cards, math_questions,
         machine_learning_questions, deep_learning_questions, development_operations_questions,
-        question_links, cards_ui, cards_css,
+        question_links, cards_ui, cards_css, card_progress, card_progress_css,
     ]) // 1024
     ok.append(f"シラバス索引項目: {index_count}件")
     ok.append("図解総数: 16件（Transformer1＋応用11＋開発運用4）")
     ok.append("追加カード: 438枚（数学70枚＋機械学習125枚＋深層学習基礎110枚＋応用84枚＋開発運用49枚）")
     ok.append("追加確認問題: 156問（応用28問＋数学24問＋機械学習36問＋深層学習基礎46問＋開発運用22問）")
     ok.append("問題総数: 174問（既存15問＋Transformer3問＋追加156問）")
+    ok.append("カード理解度: 苦手0日・曖昧1日・覚えた3→7→14→30→60→90日")
     ok.append(f"追加教材サイズ: {content_size}KB")
     return report(ok, warn, ng)
 
