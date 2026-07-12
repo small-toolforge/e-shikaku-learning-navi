@@ -1,5 +1,5 @@
 /* E資格 学習ナビ - Service Worker v0.4.0 development */
-const CACHE_NAME="eshikaku-atlas-v0.4.0-dev13";
+const CACHE_NAME="eshikaku-atlas-v0.4.0-dev14";
 const ASSETS=[
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS=[
   "./assets/v0.4.0/cards/cards.css",
   "./assets/v0.4.0/card-progress.css",
   "./assets/v0.4.0/card-scope.css",
+  "./assets/v0.4.0/exam-mode.css",
   "./assets/v0.3.1/app-data.js",
   "./assets/v0.4.0/atlas-data.js",
   "./assets/v0.4.0/application-atlas-data.js",
@@ -34,6 +35,7 @@ const ASSETS=[
   "./assets/v0.3.1/app-management.js",
   "./assets/v0.4.0/card-progress.js",
   "./assets/v0.4.0/card-scope.js",
+  "./assets/v0.4.0/exam-mode.js",
   "./assets/v0.3.1/app-init.js",
   "./icons/app-icon.svg",
   "./icons/icon-192.png",
