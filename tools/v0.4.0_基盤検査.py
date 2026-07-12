@@ -156,7 +156,10 @@ def main() -> int:
         "出題範囲3状態": all(x in scope for x in ["出題対象", "オプション（出題対象外）", "出題対象・オプション混在"]),
         "試験直前版表示": 'EXAM_MODE_VERSION = "v0.4.0-dev.14"' in exam,
         "オプション問題を除外": 'questionScopeFor(question) !== "optional"' in exam,
-        "15分集中モード": "startExamSprint" in exam and "15 * 60 * 1000" in exam and "最大15問" in exam,
+        "15分集中モード": all(x in exam for x in [
+            "function startExamSprint", "examSprintQuestions(15)", '"試験直前15分", 15',
+            "minutes * 60 * 1000", "最大15問",
+        ]),
         "出題対象ランダム10問": "startExamRandom" in exam and "slice(0, 10)" in exam,
         "出題対象弱点ドリル": "startExamWeak" in exam,
         "期限・弱点・未学習を優先": all(x in exam for x in ["const due", "const weak", "const unseen", "uniqueQuestions"]),
