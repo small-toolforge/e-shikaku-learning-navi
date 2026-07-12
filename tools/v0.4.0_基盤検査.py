@@ -160,14 +160,19 @@ def main() -> int:
         "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "15分の結果を見る"' in exam,
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
         "試験直前スマホUI": ".exam-timer" in exam_css and "@media(max-width:600px)" in exam_css,
-        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.16"' in acceptance,
+        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.17"' in acceptance,
         "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題174問", "図解16件"]),
         "実行時ID重複確認": "duplicateIds" in acceptance and "問題ID重複なし" in acceptance and "カードID重複なし" in acceptance,
         "実行時相互参照確認": "問題→カード参照" in acceptance and "カード→問題参照" in acceptance,
         "IndexedDB非破壊プローブ": "indexedDbProbe" in acceptance and 'delete(key)' in acceptance,
         "Service Worker実行時確認": "serviceWorkerProbe" in acceptance and "getRegistration" in acceptance,
         "記録画面にセルフチェック": "renderStatsWithAcceptanceCheck" in acceptance and "セルフチェックを実行" in acceptance,
-        "受け入れ確認スマホUI": ".acceptance-row" in acceptance_css and "@media(max-width:600px)" in acceptance_css,
+        "受け入れ結果JSON生成": all(x in acceptance for x in ["buildAcceptanceSnapshot", "eshikaku_acceptance_result_v1", "JSON.stringify", "application/json"]),
+        "受け入れ結果日本語ファイル名": "E資格学習ナビ_${ACCEPTANCE_CHECK_VERSION}_受け入れ結果_" in acceptance,
+        "端末・PWA環境を記録": all(x in acceptance for x in ["acceptanceDeviceFamily", "acceptanceDisplayMode", "standalone-pwa", "viewport", "pixelRatio"]),
+        "受け入れ結果に学習履歴を含めない": "回答履歴、問題SRS、カード理解度、バックアップ内容は含みません" in acceptance,
+        "結果保存はセルフチェック後だけ": 'id="saveAcceptanceCheck" disabled' in acceptance and "latestAcceptanceSnapshot" in acceptance,
+        "受け入れ確認スマホUI": all(x in acceptance_css for x in [".acceptance-actions", ".acceptance-row", "@media(max-width:600px)"]),
         "ローカル配信元固定": '--directory "%ROOT%"' in launcher and "--bind 127.0.0.1" in launcher,
         "CMD文字コード非依存": launcher.isascii() and "chcp" not in launcher.lower(),
     }
@@ -178,8 +183,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev16" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev16" if "v0.4.0-dev16" in sw else "Service Workerキャッシュ世代がv0.4.0-dev16ではありません"
+    (ok if "v0.4.0-dev17" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev17" if "v0.4.0-dev17" in sw else "Service Workerキャッシュ世代がv0.4.0-dev17ではありません"
     )
 
     node = shutil.which("node")
@@ -198,7 +203,7 @@ def main() -> int:
     ok.append("問題総数: 174問")
     ok.append("数学3問の参照修復: math-q010・math-q016・math-q024")
     ok.append("試験直前モード: オプション除外・15分最大15問・ランダム10問・弱点ドリル")
-    ok.append("受け入れセルフチェック: 件数・ID・相互参照・範囲・IndexedDB・Service Worker")
+    ok.append("受け入れセルフチェック: 13項目と端末環境をJSON保存")
     return report(ok, warn, ng)
 
 
