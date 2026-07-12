@@ -151,7 +151,7 @@ function buildAcceptanceSnapshot(results) {
       questions: QUESTIONS.length,
       atlases: atlasCountForAcceptance(),
       database: DB_NAME,
-      databaseVersion: DB_VERSION
+      databaseVersion: DB_VER
     },
     checks: results.map(result => ({
       name: result.name,
