@@ -23,7 +23,13 @@ async function seed() {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
   }
-  if (version < 7) await putOne("meta", { key: "seedVersion", value: 7, at: Date.now() });
+  if (version < 8 && typeof MATH_QUESTIONS !== "undefined") {
+    const repairIds = new Set(["math-q010", "math-q016", "math-q024"]);
+    for (const question of MATH_QUESTIONS) {
+      if (repairIds.has(question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 8) await putOne("meta", { key: "seedVersion", value: 8, at: Date.now() });
 }
 
 async function init() {
