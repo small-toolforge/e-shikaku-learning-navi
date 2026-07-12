@@ -1,6 +1,6 @@
 "use strict";
 
-const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.15";
+const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.16";
 
 function acceptanceResult(name, passed, detail = "") {
   return { name, passed: Boolean(passed), detail: String(detail || "") };
@@ -81,7 +81,7 @@ async function runAcceptanceChecks() {
   const optionalQuestions = typeof examOptionalQuestions === "function" ? examOptionalQuestions() : [];
 
   return [
-    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.15", ACCEPTANCE_CHECK_VERSION),
+    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.16", ACCEPTANCE_CHECK_VERSION),
     acceptanceResult("シラバスカード438枚", cards.length === 438, `${cards.length}枚`),
     acceptanceResult("確認問題174問", QUESTIONS.length === 174, `${QUESTIONS.length}問`),
     acceptanceResult("図解16件", atlasCountForAcceptance() === 16, `${atlasCountForAcceptance()}件`),
@@ -137,6 +137,6 @@ renderStats = async function renderStatsWithAcceptanceCheck() {
   $("#runAcceptanceCheck").onclick = executeAcceptanceCheck;
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev15() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev16() {
   return ACCEPTANCE_CHECK_VERSION;
 };
