@@ -34,6 +34,7 @@ SCRIPTS = [
     "assets/v0.4.0/questions/questions-02-machine-learning.js",
     "assets/v0.4.0/questions/questions-03-deep-learning-base.js",
     "assets/v0.4.0/questions/questions-05-development-operations.js",
+    "assets/v0.4.0/question-reference-repair.js",
     "assets/v0.4.0/questions/question-links.js",
     "assets/v0.3.1/app-ui.js",
     "assets/v0.4.0/atlas-ui.js",
@@ -96,6 +97,7 @@ def main() -> int:
         ml_q = read("assets/v0.4.0/questions/questions-02-machine-learning.js")
         dl_q = read("assets/v0.4.0/questions/questions-03-deep-learning-base.js")
         dev_q = read("assets/v0.4.0/questions/questions-05-development-operations.js")
+        repair = read("assets/v0.4.0/question-reference-repair.js")
         links = read("assets/v0.4.0/questions/question-links.js")
         progress = read("assets/v0.4.0/card-progress.js")
         scope = read("assets/v0.4.0/card-scope.js")
@@ -121,6 +123,11 @@ def main() -> int:
         "dev": re.findall(r'"(devops-q\d{3})"', dev_q),
     }
     all_ids = sum(ids.values(), [])
+    all_card_source = "\n".join([math_cards, ml_cards, dl_cards, app_cards, dev_cards])
+    all_card_ids = set(re.findall(r'(?:Term|Formula|Compare)\("([^"]+)"', all_card_source))
+    repair_target_ids = set(re.findall(r'"((?:term|formula|compare)-[^"]+)"', repair))
+    repaired_question_ids = set(re.findall(r'"(math-q\d{3})"\s*:', repair))
+
     checks = {
         "Transformer図解": "Attention Is All You Need" in atlas,
         "応用11図解": len(re.findall(r'^\s*id: "', app_atlas, re.M)) >= 11,
@@ -135,8 +142,11 @@ def main() -> int:
         "深層学習基礎46問": len(ids["dl"]) == 46 and len(set(ids["dl"])) == 46,
         "開発運用22問": len(ids["dev"]) == 22 and len(set(ids["dev"])) == 22,
         "追加問題ID重複なし": len(all_ids) == len(set(all_ids)),
+        "数学3問の参照修復": repaired_question_ids == {"math-q010", "math-q016", "math-q024"},
+        "修復先カードIDがすべて存在": bool(repair_target_ids) and repair_target_ids <= all_card_ids,
+        "参照修復を問題統合前に実行": inspector.scripts.index("assets/v0.4.0/question-reference-repair.js") < inspector.scripts.index("assets/v0.4.0/questions/question-links.js"),
         "問題統合": all(x in links for x in ["...MATH_QUESTIONS", "...MACHINE_LEARNING_QUESTIONS", "...DEEP_LEARNING_BASE_QUESTIONS", "...DEVELOPMENT_OPERATIONS_QUESTIONS"]),
-        "Seed版7": 'seedVersion", value: 7' in init,
+        "Seed版8で既存端末を修復": 'seedVersion", value: 8' in init and all(x in init for x in ["math-q010", "math-q016", "math-q024", "await putOne(\"questions\", question)"]),
         "カード理解度3段階": all(x in progress for x in ["苦手", "曖昧", "覚えた", "CARD_PROGRESS_INTERVALS"]),
         "カード理解度JSON互換": "cardProgress: Object.values(CARD_PROGRESS)" in progress and "validated.cardProgress == null" in progress,
         "出題範囲3状態": all(x in scope for x in ["出題対象", "オプション（出題対象外）", "出題対象・オプション混在"]),
@@ -150,7 +160,7 @@ def main() -> int:
         "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "15分の結果を見る"' in exam,
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
         "試験直前スマホUI": ".exam-timer" in exam_css and "@media(max-width:600px)" in exam_css,
-        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.15"' in acceptance,
+        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.16"' in acceptance,
         "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題174問", "図解16件"]),
         "実行時ID重複確認": "duplicateIds" in acceptance and "問題ID重複なし" in acceptance and "カードID重複なし" in acceptance,
         "実行時相互参照確認": "問題→カード参照" in acceptance and "カード→問題参照" in acceptance,
@@ -168,8 +178,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev15" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev15" if "v0.4.0-dev15" in sw else "Service Workerキャッシュ世代がv0.4.0-dev15ではありません"
+    (ok if "v0.4.0-dev16" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev16" if "v0.4.0-dev16" in sw else "Service Workerキャッシュ世代がv0.4.0-dev16ではありません"
     )
 
     node = shutil.which("node")
@@ -186,6 +196,7 @@ def main() -> int:
     ok.append("図解総数: 16件")
     ok.append("シラバス拡充カード: 438枚")
     ok.append("問題総数: 174問")
+    ok.append("数学3問の参照修復: math-q010・math-q016・math-q024")
     ok.append("試験直前モード: オプション除外・15分最大15問・ランダム10問・弱点ドリル")
     ok.append("受け入れセルフチェック: 件数・ID・相互参照・範囲・IndexedDB・Service Worker")
     return report(ok, warn, ng)
