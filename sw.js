@@ -1,5 +1,5 @@
 /* E資格 学習ナビ - Service Worker v0.4.0 development */
-const CACHE_NAME="eshikaku-atlas-v0.4.0-dev17";
+const CACHE_NAME="eshikaku-atlas-v0.4.0-dev18";
 const ASSETS=[
   "./",
   "./index.html",
