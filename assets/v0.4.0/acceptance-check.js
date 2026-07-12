@@ -1,6 +1,7 @@
 "use strict";
 
-const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.16";
+const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.17";
+let latestAcceptanceSnapshot = null;
 
 function acceptanceResult(name, passed, detail = "") {
   return { name, passed: Boolean(passed), detail: String(detail || "") };
@@ -81,7 +82,7 @@ async function runAcceptanceChecks() {
   const optionalQuestions = typeof examOptionalQuestions === "function" ? examOptionalQuestions() : [];
 
   return [
-    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.16", ACCEPTANCE_CHECK_VERSION),
+    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.17", ACCEPTANCE_CHECK_VERSION),
     acceptanceResult("シラバスカード438枚", cards.length === 438, `${cards.length}枚`),
     acceptanceResult("確認問題174問", QUESTIONS.length === 174, `${QUESTIONS.length}問`),
     acceptanceResult("図解16件", atlasCountForAcceptance() === 16, `${atlasCountForAcceptance()}件`),
@@ -107,16 +108,98 @@ function acceptanceCheckHtml(results) {
   return `<div class="acceptance-summary ${failed ? "has-failure" : "all-pass"}"><b>${failed ? `NG ${failed}件` : "すべてOK"}</b><span>${passed}/${results.length}項目</span></div>${rows}`;
 }
 
+function acceptanceDisplayMode() {
+  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return "standalone-pwa";
+  if (navigator.standalone === true) return "standalone-pwa";
+  return "browser";
+}
+
+function acceptanceDeviceFamily() {
+  const ua = navigator.userAgent || "";
+  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "iPad";
+  if (/Android/i.test(ua)) return "Android";
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "macOS";
+  return "Other";
+}
+
+function buildAcceptanceSnapshot(results) {
+  const passed = results.filter(result => result.passed).length;
+  return {
+    schema: "eshikaku_acceptance_result_v1",
+    appVersion: ACCEPTANCE_CHECK_VERSION,
+    checkedAt: new Date().toISOString(),
+    summary: {
+      passed,
+      total: results.length,
+      allPassed: passed === results.length
+    },
+    environment: {
+      deviceFamily: acceptanceDeviceFamily(),
+      displayMode: acceptanceDisplayMode(),
+      language: navigator.language || "",
+      online: navigator.onLine,
+      secureContext: window.isSecureContext,
+      location: `${location.origin}${location.pathname}`,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      screen: { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio || 1 },
+      userAgent: navigator.userAgent || ""
+    },
+    contents: {
+      syllabusCards: allSyllabusCards().length,
+      questions: QUESTIONS.length,
+      atlases: atlasCountForAcceptance(),
+      database: DB_NAME,
+      databaseVersion: DB_VERSION
+    },
+    checks: results.map(result => ({
+      name: result.name,
+      passed: result.passed,
+      detail: result.detail
+    })),
+    privacy: "回答履歴、問題SRS、カード理解度、バックアップ内容は含みません。"
+  };
+}
+
+function acceptanceFileTimestamp(date = new Date()) {
+  const pad = value => String(value).padStart(2, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function downloadAcceptanceSnapshot() {
+  if (!latestAcceptanceSnapshot) {
+    toast("先にセルフチェックを実行してください");
+    return;
+  }
+  const json = JSON.stringify(latestAcceptanceSnapshot, null, 2);
+  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `E資格学習ナビ_${ACCEPTANCE_CHECK_VERSION}_受け入れ結果_${acceptanceFileTimestamp()}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast("受け入れ結果JSONを保存しました");
+}
+
 async function executeAcceptanceCheck() {
   const output = $("#acceptanceCheckOutput");
   const button = $("#runAcceptanceCheck");
+  const saveButton = $("#saveAcceptanceCheck");
   if (!output) return;
   if (button) button.disabled = true;
+  if (saveButton) saveButton.disabled = true;
   output.innerHTML = `<div class="muted">確認中です…</div>`;
   try {
     const results = await runAcceptanceChecks();
+    latestAcceptanceSnapshot = buildAcceptanceSnapshot(results);
     output.innerHTML = acceptanceCheckHtml(results);
+    if (saveButton) saveButton.disabled = false;
   } catch (error) {
+    latestAcceptanceSnapshot = null;
     output.innerHTML = `<div class="notice warn"><b>セルフチェックを完了できませんでした</b><div class="muted">${esc(error.message || error)}</div></div>`;
   } finally {
     if (button) button.disabled = false;
@@ -131,12 +214,14 @@ renderStats = async function renderStatsWithAcceptanceCheck() {
   root.insertAdjacentHTML("afterbegin", `<div class="card" id="acceptanceCheckPanel">
     <div class="eyebrow">v0.4.0受け入れ準備</div><h2>実行時セルフチェック</h2>
     <div class="muted">教材件数、ID重複、相互参照、出題範囲、IndexedDB、Service Workerをこの端末上で確認します。学習履歴は変更しません。</div>
-    <button class="btn primary" id="runAcceptanceCheck">セルフチェックを実行</button>
+    <div class="acceptance-actions"><button class="btn primary" id="runAcceptanceCheck">セルフチェックを実行</button><button class="btn ghost" id="saveAcceptanceCheck" disabled>結果JSONを保存</button></div>
+    <div class="muted acceptance-privacy-note">保存する結果には端末・表示環境と検査結果だけを含み、回答履歴やカード理解度は含みません。</div>
     <div id="acceptanceCheckOutput" class="acceptance-output"></div>
   </div>`);
   $("#runAcceptanceCheck").onclick = executeAcceptanceCheck;
+  $("#saveAcceptanceCheck").onclick = downloadAcceptanceSnapshot;
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev16() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev17() {
   return ACCEPTANCE_CHECK_VERSION;
 };
