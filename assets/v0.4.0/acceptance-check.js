@@ -1,7 +1,33 @@
 "use strict";
 
-const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.17";
+const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.18";
+const ACCEPTANCE_CHECK_SCHEMA = "eshikaku_acceptance_result_v1";
+const ACCEPTANCE_PROFILES = {
+  standard: {
+    label: "標準セルフチェック",
+    description: "Windowsブラウザなどで、教材件数・参照・IndexedDB・Service Workerを確認します。"
+  },
+  pwa: {
+    label: "ホーム画面PWA",
+    description: "標準項目に加え、PWA起動・Service Worker制御・CacheStorage・タッチ操作・Secure Contextを確認します。"
+  },
+  "pwa-offline": {
+    label: "PWA・オフライン",
+    description: "ホーム画面PWA項目に加え、通信を切った状態であることを確認します。"
+  }
+};
+const ACCEPTANCE_CACHE_ASSETS = [
+  "./index.html",
+  "./assets/v0.3.1/app-data.js",
+  "./assets/v0.4.0/application-atlas-data.js",
+  "./assets/v0.4.0/cards/cards-01-math.js",
+  "./assets/v0.4.0/questions/questions-01-math.js",
+  "./assets/v0.4.0/card-progress.js",
+  "./assets/v0.4.0/exam-mode.js",
+  "./assets/v0.4.0/acceptance-check.js"
+];
 let latestAcceptanceSnapshot = null;
+let acceptanceProfile = "standard";
 
 function acceptanceResult(name, passed, detail = "") {
   return { name, passed: Boolean(passed), detail: String(detail || "") };
@@ -48,7 +74,9 @@ async function indexedDbProbe() {
 }
 
 async function serviceWorkerProbe() {
-  if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) return { passed: false, detail: "HTTP(S)環境で確認してください" };
+  if (!("serviceWorker" in navigator) || location.protocol.indexOf("http") !== 0) {
+    return { passed: false, detail: "HTTP(S)環境で確認してください" };
+  }
   try {
     const registration = await navigator.serviceWorker.getRegistration("./");
     return { passed: Boolean(registration), detail: registration ? "登録済み" : "未登録" };
@@ -57,7 +85,74 @@ async function serviceWorkerProbe() {
   }
 }
 
-async function runAcceptanceChecks() {
+function serviceWorkerControlProbe() {
+  if (!("serviceWorker" in navigator)) return { passed: false, detail: "Service Worker非対応" };
+  return {
+    passed: Boolean(navigator.serviceWorker.controller),
+    detail: navigator.serviceWorker.controller ? "この画面を制御中" : "未制御：PWAを閉じて再起動してください"
+  };
+}
+
+async function cacheStorageProbe() {
+  if (!("caches" in window)) return { passed: false, detail: "CacheStorage非対応" };
+  const missing = [];
+  for (const asset of ACCEPTANCE_CACHE_ASSETS) {
+    try {
+      const url = new URL(asset, location.href).href;
+      const response = await caches.match(url);
+      if (!response) missing.push(asset);
+    } catch (error) {
+      missing.push(asset);
+    }
+  }
+  return {
+    passed: missing.length === 0,
+    detail: missing.length ? `未保存：${missing.slice(0, 4).join(", ")}` : `${ACCEPTANCE_CACHE_ASSETS.length}件利用可能`
+  };
+}
+
+function touchProbe() {
+  const points = Number(navigator.maxTouchPoints || 0);
+  const supported = points > 0 || "ontouchstart" in window;
+  return { passed: supported, detail: supported ? `maxTouchPoints=${points}` : "タッチ入力を検出できません" };
+}
+
+function acceptanceDisplayMode() {
+  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return "standalone-pwa";
+  if (navigator.standalone === true) return "standalone-pwa";
+  return "browser";
+}
+
+function acceptanceDeviceFamily() {
+  const ua = navigator.userAgent || "";
+  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "iPad";
+  if (/Android/i.test(ua)) return "Android";
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Macintosh|Mac OS X/i.test(ua)) return "macOS";
+  return "Other";
+}
+
+function defaultAcceptanceProfile() {
+  return acceptanceDisplayMode() === "standalone-pwa" ? "pwa" : "standard";
+}
+
+function currentAcceptanceProfile() {
+  return ACCEPTANCE_PROFILES[acceptanceProfile] ? acceptanceProfile : "standard";
+}
+
+function acceptanceProfileOptions() {
+  return Object.entries(ACCEPTANCE_PROFILES).map(([id, profile]) =>
+    `<option value="${esc(id)}" ${id === acceptanceProfile ? "selected" : ""}>${esc(profile.label)}</option>`
+  ).join("");
+}
+
+function acceptanceProfileHelp() {
+  const profile = ACCEPTANCE_PROFILES[currentAcceptanceProfile()];
+  return profile ? profile.description : "";
+}
+
+async function runAcceptanceChecks(profileId = currentAcceptanceProfile()) {
   const cards = allSyllabusCards();
   const questionDuplicates = duplicateIds(QUESTIONS);
   const cardDuplicates = duplicateIds(cards);
@@ -81,8 +176,8 @@ async function runAcceptanceChecks() {
   const eligibleQuestions = typeof examEligibleQuestions === "function" ? examEligibleQuestions() : [];
   const optionalQuestions = typeof examOptionalQuestions === "function" ? examOptionalQuestions() : [];
 
-  return [
-    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.17", ACCEPTANCE_CHECK_VERSION),
+  const results = [
+    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.18", ACCEPTANCE_CHECK_VERSION),
     acceptanceResult("シラバスカード438枚", cards.length === 438, `${cards.length}枚`),
     acceptanceResult("確認問題174問", QUESTIONS.length === 174, `${QUESTIONS.length}問`),
     acceptanceResult("図解16件", atlasCountForAcceptance() === 16, `${atlasCountForAcceptance()}件`),
@@ -94,8 +189,27 @@ async function runAcceptanceChecks() {
     acceptanceResult("試験直前の対象問題", eligibleQuestions.length > 0 && eligibleQuestions.length + optionalQuestions.length === QUESTIONS.length, `対象${eligibleQuestions.length}・除外${optionalQuestions.length}`),
     acceptanceResult("IndexedDB書込・読込・削除", idb, idb ? "正常" : "失敗"),
     acceptanceResult("Service Worker登録", sw.passed, sw.detail),
-    acceptanceResult("オンライン状態", navigator.onLine, navigator.onLine ? "オンライン" : "オフライン確認中")
+    acceptanceResult("通信状態取得", true, navigator.onLine ? "オンライン" : "オフライン")
   ];
+
+  if (profileId === "pwa" || profileId === "pwa-offline") {
+    const control = serviceWorkerControlProbe();
+    const cache = await cacheStorageProbe();
+    const touch = touchProbe();
+    results.push(
+      acceptanceResult("ホーム画面PWA起動", acceptanceDisplayMode() === "standalone-pwa", acceptanceDisplayMode()),
+      acceptanceResult("Service Worker制御", control.passed, control.detail),
+      acceptanceResult("主要教材のCacheStorage", cache.passed, cache.detail),
+      acceptanceResult("タッチ操作", touch.passed, touch.detail),
+      acceptanceResult("Secure Context", window.isSecureContext, window.isSecureContext ? "有効" : "無効")
+    );
+  }
+
+  if (profileId === "pwa-offline") {
+    results.push(acceptanceResult("オフライン状態", !navigator.onLine, navigator.onLine ? "オンラインのままです" : "オフライン"));
+  }
+
+  return results;
 }
 
 function acceptanceCheckHtml(results) {
@@ -108,28 +222,14 @@ function acceptanceCheckHtml(results) {
   return `<div class="acceptance-summary ${failed ? "has-failure" : "all-pass"}"><b>${failed ? `NG ${failed}件` : "すべてOK"}</b><span>${passed}/${results.length}項目</span></div>${rows}`;
 }
 
-function acceptanceDisplayMode() {
-  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return "standalone-pwa";
-  if (navigator.standalone === true) return "standalone-pwa";
-  return "browser";
-}
-
-function acceptanceDeviceFamily() {
-  const ua = navigator.userAgent || "";
-  if (/iPhone/i.test(ua)) return "iPhone";
-  if (/iPad/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "iPad";
-  if (/Android/i.test(ua)) return "Android";
-  if (/Windows/i.test(ua)) return "Windows";
-  if (/Macintosh|Mac OS X/i.test(ua)) return "macOS";
-  return "Other";
-}
-
-function buildAcceptanceSnapshot(results) {
+function buildAcceptanceSnapshot(results, profileId = currentAcceptanceProfile()) {
   const passed = results.filter(result => result.passed).length;
+  const profile = ACCEPTANCE_PROFILES[profileId] || ACCEPTANCE_PROFILES.standard;
   return {
-    schema: "eshikaku_acceptance_result_v1",
+    schema: ACCEPTANCE_CHECK_SCHEMA,
     appVersion: ACCEPTANCE_CHECK_VERSION,
     checkedAt: new Date().toISOString(),
+    profile: { id: profileId, label: profile.label },
     summary: {
       passed,
       total: results.length,
@@ -141,6 +241,8 @@ function buildAcceptanceSnapshot(results) {
       language: navigator.language || "",
       online: navigator.onLine,
       secureContext: window.isSecureContext,
+      maxTouchPoints: Number(navigator.maxTouchPoints || 0),
+      serviceWorkerControlled: Boolean(navigator.serviceWorker && navigator.serviceWorker.controller),
       location: `${location.origin}${location.pathname}`,
       viewport: { width: window.innerWidth, height: window.innerHeight },
       screen: { width: screen.width, height: screen.height, pixelRatio: window.devicePixelRatio || 1 },
@@ -150,6 +252,7 @@ function buildAcceptanceSnapshot(results) {
       syllabusCards: allSyllabusCards().length,
       questions: QUESTIONS.length,
       atlases: atlasCountForAcceptance(),
+      cacheAssetsChecked: profileId === "standard" ? 0 : ACCEPTANCE_CACHE_ASSETS.length,
       database: DB_NAME,
       databaseVersion: DB_VER
     },
@@ -167,6 +270,10 @@ function acceptanceFileTimestamp(date = new Date()) {
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
+function safeAcceptanceFilePart(value) {
+  return String(value || "").replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "").slice(0, 40) || "不明";
+}
+
 function downloadAcceptanceSnapshot() {
   if (!latestAcceptanceSnapshot) {
     toast("先にセルフチェックを実行してください");
@@ -176,13 +283,23 @@ function downloadAcceptanceSnapshot() {
   const blob = new Blob([json], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
+  const device = safeAcceptanceFilePart(latestAcceptanceSnapshot.environment.deviceFamily);
+  const profile = safeAcceptanceFilePart(latestAcceptanceSnapshot.profile.label);
   anchor.href = url;
-  anchor.download = `E資格学習ナビ_${ACCEPTANCE_CHECK_VERSION}_受け入れ結果_${acceptanceFileTimestamp()}.json`;
+  anchor.download = `E資格学習ナビ_${ACCEPTANCE_CHECK_VERSION}_${device}_${profile}_受け入れ結果_${acceptanceFileTimestamp()}.json`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast("受け入れ結果JSONを保存しました");
+}
+
+function resetAcceptanceOutput() {
+  latestAcceptanceSnapshot = null;
+  const output = $("#acceptanceCheckOutput");
+  const saveButton = $("#saveAcceptanceCheck");
+  if (output) output.innerHTML = "";
+  if (saveButton) saveButton.disabled = true;
 }
 
 async function executeAcceptanceCheck() {
@@ -194,8 +311,9 @@ async function executeAcceptanceCheck() {
   if (saveButton) saveButton.disabled = true;
   output.innerHTML = `<div class="muted">確認中です…</div>`;
   try {
-    const results = await runAcceptanceChecks();
-    latestAcceptanceSnapshot = buildAcceptanceSnapshot(results);
+    const profileId = currentAcceptanceProfile();
+    const results = await runAcceptanceChecks(profileId);
+    latestAcceptanceSnapshot = buildAcceptanceSnapshot(results, profileId);
     output.innerHTML = acceptanceCheckHtml(results);
     if (saveButton) saveButton.disabled = false;
   } catch (error) {
@@ -211,17 +329,24 @@ renderStats = async function renderStatsWithAcceptanceCheck() {
   await renderStatsBeforeAcceptanceCheck();
   const root = $("#view-stats");
   if (!root || $("#acceptanceCheckPanel")) return;
+  acceptanceProfile = defaultAcceptanceProfile();
   root.insertAdjacentHTML("afterbegin", `<div class="card" id="acceptanceCheckPanel">
     <div class="eyebrow">v0.4.0受け入れ準備</div><h2>実行時セルフチェック</h2>
     <div class="muted">教材件数、ID重複、相互参照、出題範囲、IndexedDB、Service Workerをこの端末上で確認します。学習履歴は変更しません。</div>
+    <div class="acceptance-profile"><label><span class="label">確認プロファイル</span><select id="acceptanceProfile">${acceptanceProfileOptions()}</select></label><div class="muted" id="acceptanceProfileHelp">${esc(acceptanceProfileHelp())}</div></div>
     <div class="acceptance-actions"><button class="btn primary" id="runAcceptanceCheck">セルフチェックを実行</button><button class="btn ghost" id="saveAcceptanceCheck" disabled>結果JSONを保存</button></div>
     <div class="muted acceptance-privacy-note">保存する結果には端末・表示環境と検査結果だけを含み、回答履歴やカード理解度は含みません。</div>
     <div id="acceptanceCheckOutput" class="acceptance-output"></div>
   </div>`);
+  $("#acceptanceProfile").onchange = event => {
+    acceptanceProfile = event.target.value;
+    $("#acceptanceProfileHelp").textContent = acceptanceProfileHelp();
+    resetAcceptanceOutput();
+  };
   $("#runAcceptanceCheck").onclick = executeAcceptanceCheck;
   $("#saveAcceptanceCheck").onclick = downloadAcceptanceSnapshot;
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev17() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev18() {
   return ACCEPTANCE_CHECK_VERSION;
 };
