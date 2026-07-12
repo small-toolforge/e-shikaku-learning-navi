@@ -28,6 +28,7 @@ SCRIPTS = [
     "assets/v0.4.0/questions/questions-01-math.js",
     "assets/v0.4.0/questions/questions-02-machine-learning.js",
     "assets/v0.4.0/questions/questions-03-deep-learning-base.js",
+    "assets/v0.4.0/questions/questions-05-development-operations.js",
     "assets/v0.4.0/questions/question-links.js",
     "assets/v0.3.1/app-ui.js",
     "assets/v0.4.0/atlas-ui.js",
@@ -83,6 +84,7 @@ def main() -> int:
         math_questions = (ROOT / "assets/v0.4.0/questions/questions-01-math.js").read_text(encoding="utf-8")
         machine_learning_questions = (ROOT / "assets/v0.4.0/questions/questions-02-machine-learning.js").read_text(encoding="utf-8")
         deep_learning_questions = (ROOT / "assets/v0.4.0/questions/questions-03-deep-learning-base.js").read_text(encoding="utf-8")
+        development_operations_questions = (ROOT / "assets/v0.4.0/questions/questions-05-development-operations.js").read_text(encoding="utf-8")
         question_links = (ROOT / "assets/v0.4.0/questions/question-links.js").read_text(encoding="utf-8")
         cards_ui = (ROOT / "assets/v0.4.0/cards/cards-ui.js").read_text(encoding="utf-8")
         cards_css = (ROOT / "assets/v0.4.0/cards/cards.css").read_text(encoding="utf-8")
@@ -117,11 +119,31 @@ def main() -> int:
         "3-6-1",
         "3-7-1", "3-7-2", "3-7-3", "3-7-4", "3-7-5",
     ]
+    expected_devops_counts = {
+        "5-1-1": 6,
+        "5-2-1": 4,
+        "5-2-2": 4,
+        "5-3-1": 4,
+        "5-4-1": 4,
+    }
     math_question_ids = re.findall(r'"(math-q\d{3})"', math_questions)
     machine_learning_question_ids = re.findall(r'"(ml-q\d{3})"', machine_learning_questions)
     deep_learning_question_ids = re.findall(r'"(dl-q\d{3})"', deep_learning_questions)
-    all_new_question_ids = math_question_ids + machine_learning_question_ids + deep_learning_question_ids
-    deep_syllabus_coverage = all(deep_learning_questions.count(f'"{item_id}"') == 2 for item_id in expected_deep_syllabus_ids)
+    development_operations_question_ids = re.findall(r'"(devops-q\d{3})"', development_operations_questions)
+    all_new_question_ids = (
+        math_question_ids
+        + machine_learning_question_ids
+        + deep_learning_question_ids
+        + development_operations_question_ids
+    )
+    deep_syllabus_coverage = all(
+        deep_learning_questions.count(f'"{item_id}"') == 2
+        for item_id in expected_deep_syllabus_ids
+    )
+    devops_syllabus_coverage = all(
+        development_operations_questions.count(f'"{item_id}"') == count
+        for item_id, count in expected_devops_counts.items()
+    )
 
     checks = {
         "Transformerアトラス版表示": 'ATLAS_VERSION = "v0.4.0-dev.1"' in data,
@@ -129,8 +151,8 @@ def main() -> int:
         "数学カード版表示": 'MATH_CARDS_VERSION = "v0.4.0-dev.4"' in math_cards,
         "機械学習カード版表示": 'MACHINE_LEARNING_CARDS_VERSION = "v0.4.0-dev.5"' in machine_learning_cards,
         "深層学習基礎カード版表示": 'DEEP_LEARNING_BASE_CARDS_VERSION = "v0.4.0-dev.7"' in deep_learning_base_cards,
-        "問題セット版表示": 'QUESTION_SET_VERSION = "v0.4.0-dev.8"' in question_links,
         "開発運用カード版表示": 'DEVELOPMENT_OPERATIONS_CARDS_VERSION = "v0.4.0-dev.9"' in development_operations_cards,
+        "問題セット版表示": 'QUESTION_SET_VERSION = "v0.4.0-dev.10"' in question_links,
         "Transformer原典": "Attention Is All You Need" in data,
         "Transformer図解ノード": "TRANSFORMER_NODES" in data and data.count("segment:") >= 16,
         "Transformer確認問題3問": data.count('id: "atlas-transformer-00') == 3,
@@ -177,19 +199,23 @@ def main() -> int:
         "機械学習確認問題36問": len(machine_learning_question_ids) == 36 and len(set(machine_learning_question_ids)) == 36,
         "深層学習基礎確認問題46問": len(deep_learning_question_ids) == 46 and len(set(deep_learning_question_ids)) == 46,
         "深層学習基礎23項目を各2問": deep_syllabus_coverage,
+        "開発運用確認問題22問": len(development_operations_question_ids) == 22 and len(set(development_operations_question_ids)) == 22,
+        "開発運用5項目の配分": devops_syllabus_coverage,
         "追加問題ID重複なし": len(all_new_question_ids) == len(set(all_new_question_ids)),
         "問題は4択": (
             math_questions.count('["') >= 24
             and machine_learning_questions.count('["') >= 36
             and deep_learning_questions.count('["') >= 46
+            and development_operations_questions.count('["') >= 22
         ),
         "問題とカードの相互接続": "findSyllabusCardById" in question_links and "card.questionIds.push" in question_links,
-        "数学・機械学習・深層学習基礎問題を統合": all(x in question_links for x in [
+        "1・2・3・5章問題を統合": all(x in question_links for x in [
             "...MATH_QUESTIONS", "...MACHINE_LEARNING_QUESTIONS", "...DEEP_LEARNING_BASE_QUESTIONS",
+            "...DEVELOPMENT_OPERATIONS_QUESTIONS",
         ]),
-        "追加問題Seed版6": 'version < 6' in init and "SYLLABUS_QUESTIONS" in init and 'seedVersion", value: 6' in init,
+        "追加問題Seed版7": 'version < 7' in init and "SYLLABUS_QUESTIONS" in init and 'seedVersion", value: 7' in init,
         "カード関連問題から新問題を参照": "SYLLABUS_QUESTIONS" in cards_ui,
-        "開発運用カード版を優先表示": "DEVELOPMENT_OPERATIONS_CARDS_VERSION" in cards_ui,
+        "最新問題版を優先表示": "QUESTION_SET_VERSION" in cards_ui and "DEVELOPMENT_OPERATIONS_CARDS_VERSION" in cards_ui,
         "カード横断検索": "syllabusCardSearch" in cards_ui and "syllabusCardText" in cards_ui,
         "カード章フィルター": "syllabusCardMajor" in cards_ui and "syllabusCardMajorName" in cards_ui,
         "カード分野フィルター": "syllabusCardGroup" in cards_ui and "syllabusCardGroupName" in cards_ui,
@@ -213,10 +239,10 @@ def main() -> int:
             ok.append(f"Service Worker対象: {rel}")
         else:
             ng.append(f"Service Worker対象から欠落: {rel}")
-    if "v0.4.0-dev9" in sw:
-        ok.append("Service Workerキャッシュ世代: v0.4.0-dev9")
+    if "v0.4.0-dev10" in sw:
+        ok.append("Service Workerキャッシュ世代: v0.4.0-dev10")
     else:
-        ng.append("Service Workerキャッシュ世代がv0.4.0-dev9ではありません")
+        ng.append("Service Workerキャッシュ世代がv0.4.0-dev10ではありません")
 
     node = shutil.which("node")
     if node:
@@ -234,14 +260,14 @@ def main() -> int:
         data, ui, application_data, application_ui, segment_defaults,
         application_cards, math_cards, machine_learning_cards, deep_learning_base_cards,
         development_operations_cards,
-        math_questions, machine_learning_questions, deep_learning_questions, question_links,
-        cards_ui, cards_css,
+        math_questions, machine_learning_questions, deep_learning_questions,
+        development_operations_questions, question_links, cards_ui, cards_css,
     ]) // 1024
     ok.append(f"シラバス索引項目: {index_count}件")
     ok.append(f"図解総数: {1 + len(application_ids)}件")
     ok.append("追加カード: 438枚（数学70枚＋機械学習125枚＋深層学習基礎110枚＋応用84枚＋開発運用49枚）")
-    ok.append("追加確認問題: 134問（応用28問＋数学24問＋機械学習36問＋深層学習基礎46問）")
-    ok.append("問題総数: 152問（既存15問＋Transformer3問＋追加134問）")
+    ok.append("追加確認問題: 156問（応用28問＋数学24問＋機械学習36問＋深層学習基礎46問＋開発運用22問）")
+    ok.append("問題総数: 174問（既存15問＋Transformer3問＋追加156問）")
     ok.append(f"追加教材サイズ: {content_size}KB")
     return report(ok, warn, ng)
 
