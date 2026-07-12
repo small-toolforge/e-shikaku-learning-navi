@@ -1,7 +1,11 @@
 "use strict";
 
-const QUESTION_SET_VERSION = "v0.4.0-dev.6";
-const SYLLABUS_QUESTIONS = [...MATH_QUESTIONS, ...MACHINE_LEARNING_QUESTIONS];
+const QUESTION_SET_VERSION = "v0.4.0-dev.8";
+const SYLLABUS_QUESTIONS = [
+  ...MATH_QUESTIONS,
+  ...MACHINE_LEARNING_QUESTIONS,
+  ...DEEP_LEARNING_BASE_QUESTIONS
+];
 
 function findSyllabusCardById(cardId) {
   return TERMS.find(card => card.id === cardId)
