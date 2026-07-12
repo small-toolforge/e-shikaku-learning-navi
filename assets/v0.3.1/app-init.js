@@ -18,12 +18,12 @@ async function seed() {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
   }
-  if (version < 5 && typeof SYLLABUS_QUESTIONS !== "undefined") {
+  if (version < 6 && typeof SYLLABUS_QUESTIONS !== "undefined") {
     for (const question of SYLLABUS_QUESTIONS) {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
   }
-  if (version < 5) await putOne("meta", { key: "seedVersion", value: 5, at: Date.now() });
+  if (version < 6) await putOne("meta", { key: "seedVersion", value: 6, at: Date.now() });
 }
 
 async function init() {
