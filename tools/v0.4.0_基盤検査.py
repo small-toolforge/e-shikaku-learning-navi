@@ -18,6 +18,7 @@ CSS = [
     "assets/v0.4.0/card-progress.css",
     "assets/v0.4.0/card-scope.css",
     "assets/v0.4.0/exam-mode.css",
+    "assets/v0.4.0/acceptance-check.css",
 ]
 SCRIPTS = [
     "assets/v0.3.1/app-data.js",
@@ -45,6 +46,7 @@ SCRIPTS = [
     "assets/v0.4.0/card-progress.js",
     "assets/v0.4.0/card-scope.js",
     "assets/v0.4.0/exam-mode.js",
+    "assets/v0.4.0/acceptance-check.js",
     "assets/v0.3.1/app-init.js",
 ]
 LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
@@ -99,6 +101,8 @@ def main() -> int:
         scope = read("assets/v0.4.0/card-scope.js")
         exam = read("assets/v0.4.0/exam-mode.js")
         exam_css = read("assets/v0.4.0/exam-mode.css")
+        acceptance = read("assets/v0.4.0/acceptance-check.js")
+        acceptance_css = read("assets/v0.4.0/acceptance-check.css")
         init = read("assets/v0.3.1/app-init.js")
         launcher = read(LOCAL_LAUNCHER)
     except Exception as exc:
@@ -146,6 +150,14 @@ def main() -> int:
         "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "15分の結果を見る"' in exam,
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
         "試験直前スマホUI": ".exam-timer" in exam_css and "@media(max-width:600px)" in exam_css,
+        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.15"' in acceptance,
+        "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題174問", "図解16件"]),
+        "実行時ID重複確認": "duplicateIds" in acceptance and "問題ID重複なし" in acceptance and "カードID重複なし" in acceptance,
+        "実行時相互参照確認": "問題→カード参照" in acceptance and "カード→問題参照" in acceptance,
+        "IndexedDB非破壊プローブ": "indexedDbProbe" in acceptance and 'delete(key)' in acceptance,
+        "Service Worker実行時確認": "serviceWorkerProbe" in acceptance and "getRegistration" in acceptance,
+        "記録画面にセルフチェック": "renderStatsWithAcceptanceCheck" in acceptance and "セルフチェックを実行" in acceptance,
+        "受け入れ確認スマホUI": ".acceptance-row" in acceptance_css and "@media(max-width:600px)" in acceptance_css,
         "ローカル配信元固定": '--directory "%ROOT%"' in launcher and "--bind 127.0.0.1" in launcher,
         "CMD文字コード非依存": launcher.isascii() and "chcp" not in launcher.lower(),
     }
@@ -156,8 +168,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev14" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev14" if "v0.4.0-dev14" in sw else "Service Workerキャッシュ世代がv0.4.0-dev14ではありません"
+    (ok if "v0.4.0-dev15" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev15" if "v0.4.0-dev15" in sw else "Service Workerキャッシュ世代がv0.4.0-dev15ではありません"
     )
 
     node = shutil.which("node")
@@ -175,6 +187,7 @@ def main() -> int:
     ok.append("シラバス拡充カード: 438枚")
     ok.append("問題総数: 174問")
     ok.append("試験直前モード: オプション除外・15分最大15問・ランダム10問・弱点ドリル")
+    ok.append("受け入れセルフチェック: 件数・ID・相互参照・範囲・IndexedDB・Service Worker")
     return report(ok, warn, ng)
 
 
