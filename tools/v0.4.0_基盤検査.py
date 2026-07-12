@@ -16,6 +16,7 @@ CSS = [
     "assets/v0.4.0/application-atlas.css",
     "assets/v0.4.0/cards/cards.css",
     "assets/v0.4.0/card-progress.css",
+    "assets/v0.4.0/card-scope.css",
 ]
 SCRIPTS = [
     "assets/v0.3.1/app-data.js",
@@ -41,6 +42,7 @@ SCRIPTS = [
     "assets/v0.3.1/app-lab.js",
     "assets/v0.3.1/app-management.js",
     "assets/v0.4.0/card-progress.js",
+    "assets/v0.4.0/card-scope.js",
     "assets/v0.3.1/app-init.js",
 ]
 LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
@@ -100,6 +102,8 @@ def main() -> int:
         cards_css = read("assets/v0.4.0/cards/cards.css")
         card_progress = read("assets/v0.4.0/card-progress.js")
         card_progress_css = read("assets/v0.4.0/card-progress.css")
+        card_scope = read("assets/v0.4.0/card-scope.js")
+        card_scope_css = read("assets/v0.4.0/card-scope.css")
         segment_defaults = read("assets/v0.4.0/atlas-segment-defaults.js")
         init = read("assets/v0.3.1/app-init.js")
         launcher = read(LOCAL_LAUNCHER)
@@ -149,6 +153,7 @@ def main() -> int:
         "応用アトラス版表示": 'APPLICATION_ATLAS_VERSION = "v0.4.0-dev.2"' in application_data,
         "第5章概念図版表示": 'DEVELOPMENT_ATLAS_VERSION = "v0.4.0-dev.11"' in development_atlas_data,
         "カード復習版表示": 'CARD_PROGRESS_VERSION = "v0.4.0-dev.12"' in card_progress,
+        "出題範囲版表示": 'CARD_SCOPE_VERSION = "v0.4.0-dev.13"' in card_scope,
         "数学カード版表示": 'MATH_CARDS_VERSION = "v0.4.0-dev.4"' in math_cards,
         "機械学習カード版表示": 'MACHINE_LEARNING_CARDS_VERSION = "v0.4.0-dev.5"' in machine_learning_cards,
         "深層学習基礎カード版表示": 'DEEP_LEARNING_BASE_CARDS_VERSION = "v0.4.0-dev.7"' in deep_learning_base_cards,
@@ -222,7 +227,12 @@ def main() -> int:
         "履歴削除へカード理解度を含む": "clearHistoryAndCardProgressAtomic" in card_progress and 'delete(CARD_PROGRESS_META_KEY)' in card_progress,
         "記録画面にカード集計": "カード理解度" in card_progress and "本日復習" in card_progress,
         "カード理解度スマホUI": ".card-progress-buttons" in card_progress_css and "@media(max-width:600px)" in card_progress_css,
-        "最新表示v0.4.0-dev.12": "currentCardsDisplayVersionDev12" in card_progress,
+        "出題範囲3状態": all(x in card_scope for x in ["出題対象", "オプション（出題対象外）", "出題対象・オプション混在"]),
+        "出題範囲フィルター": "syllabusCardScopeFilter" in card_scope and "すべて表示" in card_scope,
+        "オプション小項目対応": "OPTIONAL_WHOLE_SYLLABUS_IDS" in card_scope and '"5-1-1"' in card_scope and '"2-1-10"' in card_scope,
+        "混在小項目を安全側表示": "MIXED_SCOPE_SYLLABUS_IDS" in card_scope and '"4-4-2"' in card_scope,
+        "出題範囲スマホUI": ".card-scope-filter-row" in card_scope_css and "@media(max-width:600px)" in card_scope_css,
+        "最新表示v0.4.0-dev.13": "currentCardsDisplayVersionDev13" in card_scope,
         "索引検索": "atlasSearch" in ui and "renderSyllabusIndex" in ui,
         "ローカル確認の配信元固定": '--directory "%ROOT%"' in launcher,
         "ローカル確認の端末内限定": "--bind 127.0.0.1" in launcher,
@@ -239,10 +249,10 @@ def main() -> int:
             ok.append(f"Service Worker対象: {rel}")
         else:
             ng.append(f"Service Worker対象から欠落: {rel}")
-    if "v0.4.0-dev12" in sw:
-        ok.append("Service Workerキャッシュ世代: v0.4.0-dev12")
+    if "v0.4.0-dev13" in sw:
+        ok.append("Service Workerキャッシュ世代: v0.4.0-dev13")
     else:
-        ng.append("Service Workerキャッシュ世代がv0.4.0-dev12ではありません")
+        ng.append("Service Workerキャッシュ世代がv0.4.0-dev13ではありません")
 
     node = shutil.which("node")
     if node:
@@ -261,7 +271,7 @@ def main() -> int:
         segment_defaults, application_cards, math_cards, machine_learning_cards,
         deep_learning_base_cards, development_operations_cards, math_questions,
         machine_learning_questions, deep_learning_questions, development_operations_questions,
-        question_links, cards_ui, cards_css, card_progress, card_progress_css,
+        question_links, cards_ui, cards_css, card_progress, card_progress_css, card_scope, card_scope_css,
     ]) // 1024
     ok.append(f"シラバス索引項目: {index_count}件")
     ok.append("図解総数: 16件（Transformer1＋応用11＋開発運用4）")
@@ -269,6 +279,7 @@ def main() -> int:
     ok.append("追加確認問題: 156問（応用28問＋数学24問＋機械学習36問＋深層学習基礎46問＋開発運用22問）")
     ok.append("問題総数: 174問（既存15問＋Transformer3問＋追加156問）")
     ok.append("カード理解度: 苦手0日・曖昧1日・覚えた3→7→14→30→60→90日")
+    ok.append("出題範囲表示: 出題対象・オプション・混在の3状態")
     ok.append(f"追加教材サイズ: {content_size}KB")
     return report(ok, warn, ng)
 
