@@ -1,6 +1,6 @@
 "use strict";
 
-const BACKUP_IMPORT_VERSION = "v0.4.0-dev.19";
+const BACKUP_IMPORT_VERSION = "v0.4.0-dev.20";
 let backupImportMode = "merge";
 
 function backupTimestamp(date = new Date()) {
@@ -9,7 +9,7 @@ function backupTimestamp(date = new Date()) {
 }
 
 const backupObjectBeforeSafeImport = backupObject;
-backupObject = function backupObjectDev19() {
+backupObject = function backupObjectDev20() {
   return Object.assign(backupObjectBeforeSafeImport(), { appVersion: BACKUP_IMPORT_VERSION });
 };
 
@@ -171,6 +171,6 @@ renderStats = async function renderStatsWithBackupImport() {
   installBackupImportControls();
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev19() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev20() {
   return BACKUP_IMPORT_VERSION;
 };
