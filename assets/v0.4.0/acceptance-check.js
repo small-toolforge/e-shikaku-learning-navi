@@ -1,6 +1,6 @@
 "use strict";
 
-const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.18";
+const ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.19";
 const ACCEPTANCE_CHECK_SCHEMA = "eshikaku_acceptance_result_v1";
 const ACCEPTANCE_PROFILES = {
   standard: {
@@ -24,7 +24,8 @@ const ACCEPTANCE_CACHE_ASSETS = [
   "./assets/v0.4.0/questions/questions-01-math.js",
   "./assets/v0.4.0/card-progress.js",
   "./assets/v0.4.0/exam-mode.js",
-  "./assets/v0.4.0/acceptance-check.js"
+  "./assets/v0.4.0/acceptance-check.js",
+  "./assets/v0.4.0/backup-import.js"
 ];
 let latestAcceptanceSnapshot = null;
 let acceptanceProfile = "standard";
@@ -177,7 +178,7 @@ async function runAcceptanceChecks(profileId = currentAcceptanceProfile()) {
   const optionalQuestions = typeof examOptionalQuestions === "function" ? examOptionalQuestions() : [];
 
   const results = [
-    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.18", ACCEPTANCE_CHECK_VERSION),
+    acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.19", ACCEPTANCE_CHECK_VERSION),
     acceptanceResult("シラバスカード438枚", cards.length === 438, `${cards.length}枚`),
     acceptanceResult("確認問題174問", QUESTIONS.length === 174, `${QUESTIONS.length}問`),
     acceptanceResult("図解16件", atlasCountForAcceptance() === 16, `${atlasCountForAcceptance()}件`),
@@ -347,6 +348,6 @@ renderStats = async function renderStatsWithAcceptanceCheck() {
   $("#saveAcceptanceCheck").onclick = downloadAcceptanceSnapshot;
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev18() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev19() {
   return ACCEPTANCE_CHECK_VERSION;
 };
