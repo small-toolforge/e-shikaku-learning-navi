@@ -50,6 +50,7 @@ SCRIPTS = [
     "assets/v0.4.0/exam-mode.js",
     "assets/v0.4.0/acceptance-check.js",
     "assets/v0.4.0/backup-import.js",
+    "assets/v0.4.0/release-version.js",
     "assets/v0.3.1/app-init.js",
 ]
 LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
@@ -109,6 +110,7 @@ def main() -> int:
         acceptance_css = read("assets/v0.4.0/acceptance-check.css")
         backup_import = read("assets/v0.4.0/backup-import.js")
         backup_import_css = read("assets/v0.4.0/backup-import.css")
+        release_version = read("assets/v0.4.0/release-version.js")
         init = read("assets/v0.3.1/app-init.js")
         launcher = read(LOCAL_LAUNCHER)
     except Exception as exc:
@@ -158,7 +160,7 @@ def main() -> int:
         "カード理解度3段階": all(x in progress for x in ["苦手", "曖昧", "覚えた", "CARD_PROGRESS_INTERVALS"]),
         "カード理解度JSON互換": "cardProgress: Object.values(CARD_PROGRESS)" in progress and "validated.cardProgress == null" in progress,
         "出題範囲3状態": all(x in scope for x in ["出題対象", "オプション（出題対象外）", "出題対象・オプション混在"]),
-        "試験直前版表示": 'EXAM_MODE_VERSION = "v0.4.0-dev.14"' in exam,
+        "試験直前版表示": 'EXAM_MODE_VERSION = "v0.4.0-dev.20"' in exam,
         "オプション問題を除外": 'questionScopeFor(question) !== "optional"' in exam,
         "15分集中モード": all(x in exam for x in [
             "function startExamSprint", "examSprintQuestions(15)", '"試験直前15分", 15',
@@ -168,10 +170,15 @@ def main() -> int:
         "出題対象弱点ドリル": "startExamWeak" in exam,
         "期限・弱点・未学習を優先": all(x in exam for x in ["const due", "const weak", "const unseen", "uniqueQuestions"]),
         "問題画面に範囲タグ": "injectExamQuestionBadge" in exam and "examScopeBadge" in exam,
-        "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "15分の結果を見る"' in exam,
+        "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "時間終了の結果を見る"' in exam and "markExamExpiredUi" in exam,
+        "途中結果ボタン": "endExamWithCurrentResult" in exam and "ここまでの結果" in exam,
+        "回答済みだけを集計": "session.examAnswered" in exam and "correct}/${answered}" in exam and "未回答は不正解として数えません" in exam,
+        "試験結果に回答・未回答・正答率・時間": all(x in exam for x in ["回答", "未回答", "回答内正答率", "経過時間", "formatExamElapsed"]),
+        "同じ問題で再試行": "examResultRetry" in exam and "finished.list" in exam,
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
-        "試験直前スマホUI": ".exam-timer" in exam_css and "@media(max-width:600px)" in exam_css,
-        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.19"' in acceptance,
+        "試験直前スマホUI": all(x in exam_css for x in [".exam-timer", ".exam-finish", ".exam-result-card", "@media(max-width:600px)"]),
+        "受け入れ基盤を維持": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.19"' in acceptance,
+        "最新版v0.4.0-dev.20を統一表示": 'RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.20"' in release_version and "runAcceptanceChecksWithReleaseVersion" in release_version and "buildAcceptanceSnapshotWithReleaseVersion" in release_version,
         "標準・PWA・オフライン3プロファイル": all(x in acceptance for x in ['standard:', 'pwa:', '"pwa-offline":', "確認プロファイル"]),
         "標準13項目を維持": "通信状態取得" in acceptance and "Service Worker登録" in acceptance,
         "PWA起動確認": "ホーム画面PWA起動" in acceptance and "standalone-pwa" in acceptance,
@@ -189,7 +196,7 @@ def main() -> int:
         "受け入れ結果に学習履歴を含めない": "回答履歴、問題SRS、カード理解度、バックアップ内容は含みません" in acceptance,
         "結果保存はセルフチェック後だけ": 'id="saveAcceptanceCheck" disabled' in acceptance and "latestAcceptanceSnapshot" in acceptance,
         "受け入れ確認スマホUI": all(x in acceptance_css for x in [".acceptance-profile", ".acceptance-actions", ".acceptance-row", "@media(max-width:600px)"]),
-        "バックアップ読込版表示": 'BACKUP_IMPORT_VERSION = "v0.4.0-dev.19"' in backup_import,
+        "バックアップ読込版表示": 'BACKUP_IMPORT_VERSION = "v0.4.0-dev.20"' in backup_import,
         "統合・置換の2方式": all(x in backup_import for x in ["統合読込（新しい状態を優先）", "学習状態を置換（JSONへ戻す）", 'backupImportMode === "replace-state"']),
         "置換は問題教材を保持": "data.questions.forEach(item => questions.put(item))" in backup_import and "questions.clear()" not in backup_import,
         "置換は学習状態だけをクリア": "logs.clear()" in backup_import and "srs.clear()" in backup_import and "CARD_PROGRESS_META_KEY" in backup_import,
@@ -209,8 +216,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev19" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev19" if "v0.4.0-dev19" in sw else "Service Workerキャッシュ世代がv0.4.0-dev19ではありません"
+    (ok if "v0.4.0-dev20" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev20" if "v0.4.0-dev20" in sw else "Service Workerキャッシュ世代がv0.4.0-dev20ではありません"
     )
 
     node = shutil.which("node")
@@ -227,6 +234,7 @@ def main() -> int:
     ok.append("図解総数: 16件")
     ok.append("シラバス拡充カード: 438枚")
     ok.append("問題総数: 174問")
+    ok.append("試験直前結果: 回答済みだけを集計し、途中終了・時間終了・全問完了を区別")
     ok.append("学習データ読込: 統合読込＋問題教材を保持する学習状態置換")
     ok.append("受け入れプロファイル: 標準13項目・PWA18項目・PWAオフライン19項目")
     return report(ok, warn, ng)
