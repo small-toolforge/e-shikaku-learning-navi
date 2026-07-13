@@ -19,6 +19,7 @@ CSS = [
     "assets/v0.4.0/card-scope.css",
     "assets/v0.4.0/exam-mode.css",
     "assets/v0.4.0/acceptance-check.css",
+    "assets/v0.4.0/backup-import.css",
 ]
 SCRIPTS = [
     "assets/v0.3.1/app-data.js",
@@ -48,6 +49,7 @@ SCRIPTS = [
     "assets/v0.4.0/card-scope.js",
     "assets/v0.4.0/exam-mode.js",
     "assets/v0.4.0/acceptance-check.js",
+    "assets/v0.4.0/backup-import.js",
     "assets/v0.3.1/app-init.js",
 ]
 LOCAL_LAUNCHER = "tools/v0.4.0_ローカル確認.cmd"
@@ -105,6 +107,8 @@ def main() -> int:
         exam_css = read("assets/v0.4.0/exam-mode.css")
         acceptance = read("assets/v0.4.0/acceptance-check.js")
         acceptance_css = read("assets/v0.4.0/acceptance-check.css")
+        backup_import = read("assets/v0.4.0/backup-import.js")
+        backup_import_css = read("assets/v0.4.0/backup-import.css")
         init = read("assets/v0.3.1/app-init.js")
         launcher = read(LOCAL_LAUNCHER)
     except Exception as exc:
@@ -167,12 +171,12 @@ def main() -> int:
         "タイマー終了後に結果表示": "session.examExpired" in exam and 'next.textContent = "15分の結果を見る"' in exam,
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
         "試験直前スマホUI": ".exam-timer" in exam_css and "@media(max-width:600px)" in exam_css,
-        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.18"' in acceptance,
+        "受け入れ確認版表示": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.19"' in acceptance,
         "標準・PWA・オフライン3プロファイル": all(x in acceptance for x in ['standard:', 'pwa:', '"pwa-offline":', "確認プロファイル"]),
         "標準13項目を維持": "通信状態取得" in acceptance and "Service Worker登録" in acceptance,
         "PWA起動確認": "ホーム画面PWA起動" in acceptance and "standalone-pwa" in acceptance,
         "Service Worker制御確認": "serviceWorkerControlProbe" in acceptance and "navigator.serviceWorker.controller" in acceptance,
-        "主要教材CacheStorage確認": "cacheStorageProbe" in acceptance and "ACCEPTANCE_CACHE_ASSETS" in acceptance and "caches.match" in acceptance,
+        "主要教材CacheStorage確認": "cacheStorageProbe" in acceptance and "ACCEPTANCE_CACHE_ASSETS" in acceptance and "caches.match" in acceptance and "backup-import.js" in acceptance,
         "タッチ・Secure Context確認": all(x in acceptance for x in ["touchProbe", "maxTouchPoints", "Secure Context"]),
         "オフライン状態確認": 'profileId === "pwa-offline"' in acceptance and "オフライン状態" in acceptance,
         "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題174問", "図解16件"]),
@@ -185,6 +189,16 @@ def main() -> int:
         "受け入れ結果に学習履歴を含めない": "回答履歴、問題SRS、カード理解度、バックアップ内容は含みません" in acceptance,
         "結果保存はセルフチェック後だけ": 'id="saveAcceptanceCheck" disabled' in acceptance and "latestAcceptanceSnapshot" in acceptance,
         "受け入れ確認スマホUI": all(x in acceptance_css for x in [".acceptance-profile", ".acceptance-actions", ".acceptance-row", "@media(max-width:600px)"]),
+        "バックアップ読込版表示": 'BACKUP_IMPORT_VERSION = "v0.4.0-dev.19"' in backup_import,
+        "統合・置換の2方式": all(x in backup_import for x in ["統合読込（新しい状態を優先）", "学習状態を置換（JSONへ戻す）", 'backupImportMode === "replace-state"']),
+        "置換は問題教材を保持": "data.questions.forEach(item => questions.put(item))" in backup_import and "questions.clear()" not in backup_import,
+        "置換は学習状態だけをクリア": "logs.clear()" in backup_import and "srs.clear()" in backup_import and "CARD_PROGRESS_META_KEY" in backup_import,
+        "置換前の二重安全策": "await downloadBackup(false)" in backup_import and "await saveRecoverySnapshot" in backup_import,
+        "旧JSONのカード理解度注意": "このJSONにはカード理解度がないため" in backup_import,
+        "読込問題の参照修復": "applyQuestionReferenceRepairs(validated.questions)" in backup_import,
+        "学習データ日本語ファイル名": "E資格学習ナビ_学習データ_" in backup_import,
+        "読込件数の事前表示": all(x in backup_import for x in ["currentLearningCounts", "backupImportCounts", "backupCountsText"]),
+        "安全読込スマホUI": ".backup-import-controls" in backup_import_css and "@media(max-width:600px)" in backup_import_css,
         "ローカル配信元固定": '--directory "%ROOT%"' in launcher and "--bind 127.0.0.1" in launcher,
         "CMD文字コード非依存": launcher.isascii() and "chcp" not in launcher.lower(),
     }
@@ -195,8 +209,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev18" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev18" if "v0.4.0-dev18" in sw else "Service Workerキャッシュ世代がv0.4.0-dev18ではありません"
+    (ok if "v0.4.0-dev19" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev19" if "v0.4.0-dev19" in sw else "Service Workerキャッシュ世代がv0.4.0-dev19ではありません"
     )
 
     node = shutil.which("node")
@@ -213,7 +227,7 @@ def main() -> int:
     ok.append("図解総数: 16件")
     ok.append("シラバス拡充カード: 438枚")
     ok.append("問題総数: 174問")
-    ok.append("数学3問の参照修復: math-q010・math-q016・math-q024")
+    ok.append("学習データ読込: 統合読込＋問題教材を保持する学習状態置換")
     ok.append("受け入れプロファイル: 標準13項目・PWA18項目・PWAオフライン19項目")
     return report(ok, warn, ng)
 
