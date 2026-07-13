@@ -136,6 +136,11 @@ function installBackupImportControls() {
     .find(card => card.querySelector("h2")?.textContent === "データ管理");
   if (!dataCard || $("#backupImportControls")) return;
 
+  const versionLine = dataCard.querySelector(":scope > .muted");
+  if (versionLine) {
+    versionLine.innerHTML = `アプリ版：<b>${esc(BACKUP_IMPORT_VERSION)}</b> / 学習履歴はこの端末のブラウザ内に保存されています。`;
+  }
+
   const importButton = $("#importData");
   const fileInput = $("#backupFile");
   if (!importButton || !fileInput) return;
