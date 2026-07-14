@@ -7,8 +7,29 @@ async function seed() {
     for (const question of SEED_QUESTIONS) {
       if (!await getOne("questions", question.id)) await putOne("questions", question);
     }
-    await putOne("meta", { key: "seedVersion", value: 2, at: Date.now() });
   }
+  if (version < 3 && typeof ATLAS_QUESTIONS !== "undefined") {
+    for (const question of ATLAS_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 4 && typeof APPLICATION_QUESTIONS !== "undefined") {
+    for (const question of APPLICATION_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 7 && typeof SYLLABUS_QUESTIONS !== "undefined") {
+    for (const question of SYLLABUS_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 8 && typeof MATH_QUESTIONS !== "undefined") {
+    const repairIds = new Set(["math-q010", "math-q016", "math-q024"]);
+    for (const question of MATH_QUESTIONS) {
+      if (repairIds.has(question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 8) await putOne("meta", { key: "seedVersion", value: 8, at: Date.now() });
 }
 
 async function init() {
