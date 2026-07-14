@@ -1,6 +1,6 @@
 "use strict";
 
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.20";
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.21";
 
 const runAcceptanceChecksBeforeReleaseVersion = runAcceptanceChecks;
 runAcceptanceChecks = async function runAcceptanceChecksWithReleaseVersion(profileId = currentAcceptanceProfile()) {
@@ -40,6 +40,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotWithReleaseVersi
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev20() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev21() {
   return RELEASE_CANDIDATE_VERSION;
 };
