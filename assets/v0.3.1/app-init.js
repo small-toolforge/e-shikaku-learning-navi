@@ -30,6 +30,12 @@ async function seed() {
     }
   }
   if (version < 8) await putOne("meta", { key: "seedVersion", value: 8, at: Date.now() });
+  if (version < 9 && typeof DEEP_LEARNING_APPLICATION_QUESTIONS !== "undefined") {
+    for (const question of DEEP_LEARNING_APPLICATION_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 9) await putOne("meta", { key: "seedVersion", value: 9, at: Date.now() });
 }
 
 async function init() {
