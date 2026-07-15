@@ -48,6 +48,12 @@ async function seed() {
     }
   }
   if (version < 11) await putOne("meta", { key: "seedVersion", value: 11, at: Date.now() });
+  if (version < 12 && typeof PASS_RECOVERY_QUESTIONS !== "undefined") {
+    for (const question of PASS_RECOVERY_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 12) await putOne("meta", { key: "seedVersion", value: 12, at: Date.now() });
 }
 
 function loadAppExtension(src) {
@@ -67,10 +73,11 @@ async function init() {
   try {
     $("#hdrDate").textContent = new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" });
     await openDB();
-    await loadAppExtension("./assets/v0.4.0/questions/questions-02-machine-learning-recovery.js?v=dev27");
+    await loadAppExtension("./assets/v0.4.0/questions/questions-02-machine-learning-recovery.js?v=dev28");
+    await loadAppExtension("./assets/v0.4.0/questions/questions-06-pass-recovery.js?v=dev28");
     await seed();
     await loadAll();
-    await loadAppExtension("./assets/v0.4.0/pre-exam-review.js?v=dev27");
+    await loadAppExtension("./assets/v0.4.0/pre-exam-review.js?v=dev28");
     await renderHome();
   } catch (error) {
     $("#view-home").innerHTML = `<div class="card"><h2>初期化できませんでした</h2><div class="muted">${esc(error.message || error)}</div><button class="btn primary" onclick="location.reload()">再読み込み</button></div>`;
