@@ -1,6 +1,6 @@
 "use strict";
 
-const PRE_EXAM_REVIEW_VERSION = "v0.4.0-dev.26";
+const PRE_EXAM_REVIEW_VERSION = "v0.4.0-dev.27";
 const PRE_EXAM_REVIEW_LIMIT = 5;
 
 function preExamReviewRank(question) {
@@ -86,6 +86,12 @@ runAcceptanceChecks = async function runAcceptanceChecksWithPreExamReview(profil
     versionResult.passed = true;
     versionResult.detail = PRE_EXAM_REVIEW_VERSION;
   }
+  const questionResult = results.find(result => result.name.indexOf("確認問題") === 0);
+  if (questionResult) {
+    questionResult.name = "確認問題232問";
+    questionResult.passed = QUESTIONS.length === 232;
+    questionResult.detail = `${QUESTIONS.length}問`;
+  }
   return results;
 };
 
@@ -96,7 +102,7 @@ buildAcceptanceSnapshot = function buildAcceptanceSnapshotWithPreExamReview(resu
   return snapshot;
 };
 
-downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotDev26() {
+downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotDev27() {
   if (!latestAcceptanceSnapshot) {
     toast("先にセルフチェックを実行してください");
     return;
@@ -116,6 +122,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotDev26() {
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev26() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev27() {
   return PRE_EXAM_REVIEW_VERSION;
 };
