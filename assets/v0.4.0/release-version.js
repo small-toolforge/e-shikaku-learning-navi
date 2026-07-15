@@ -1,7 +1,7 @@
 "use strict";
 
 // Previous release marker retained for dev.22 baseline checks: RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22"
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.23";
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.24";
 const MATH_RECOVERY_CACHE_ASSET = "./assets/v0.4.0/questions/questions-01-math-recovery.js";
 const PASS_ERROR_REASONS = [
   "知らなかった",
@@ -12,6 +12,7 @@ const PASS_ERROR_REASONS = [
   "時間切れ・勘"
 ];
 const MAX_PRIORITY2_PER_SPRINT = 5;
+const PASS_EXAM_DATE = new Date(2026, 7, 29);
 
 function questionExamPriority(question) {
   const value = Number(question && (question.examPriority ?? 0));
@@ -92,6 +93,56 @@ renderFeedback = function renderFeedbackWithPassPriority(question, ok) {
   installPassErrorReasons(ok);
 };
 
+function passExamDaysRemaining() {
+  return Math.ceil((PASS_EXAM_DATE.getTime() - today0()) / DAY);
+}
+
+function passExamCountdownText() {
+  const days = passExamDaysRemaining();
+  if (days < 0) return "試験おつかれさまでした";
+  if (days === 0) return "今日は試験日です";
+  return `試験まであと${days}日`;
+}
+
+function passWeakTopQuestions(limit = 3) {
+  return examEligibleQuestions()
+    .filter(question => SRS[question.id])
+    .sort((a, b) => {
+      const scoreDiff = priorityInfo(SRS[b.id]).score - priorityInfo(SRS[a.id]).score;
+      if (scoreDiff) return scoreDiff;
+      const examPriorityDiff = questionExamPriority(b) - questionExamPriority(a);
+      if (examPriorityDiff) return examPriorityDiff;
+      return String(a.id).localeCompare(String(b.id));
+    })
+    .slice(0, limit);
+}
+
+function passWeakTopHtml() {
+  const weak = passWeakTopQuestions(3);
+  if (!weak.length) {
+    return `<div class="muted">まだ回答履歴がありません。今日の15分メニューから始めてください。</div>`;
+  }
+  return `<ul class="plist">${weak.map(question => {
+    const info = priorityInfo(SRS[question.id]);
+    return `<li><b>${esc(question.topic)}</b><div class="muted">${esc(question.category)}</div><div class="why">${esc(info.why)}</div></li>`;
+  }).join("")}</ul>`;
+}
+
+const examModePanelHtmlBeforePassDashboard = examModePanelHtml;
+examModePanelHtml = function examModePanelHtmlWithPassDashboard() {
+  return `<div class="card exam-mode-card">
+    <div class="eyebrow">合格モード</div>
+    <h2>${esc(passExamCountdownText())}</h2>
+    <div class="muted">目標：あと8問を回収。今日やることだけに絞ります。</div>
+    <div class="label">今日の15分メニュー</div>
+    <button class="btn primary" data-exam-action="sprint">今日の15分メニューを始める</button>
+    <div class="muted">復習期限 → 弱点 → 未学習の順を保ち、過去出題・弱点テーマを優先します。</div>
+    <hr class="divider">
+    <h3>弱点上位3件</h3>
+    ${passWeakTopHtml()}
+  </div>`;
+};
+
 const runAcceptanceChecksBeforeReleaseVersion = runAcceptanceChecks;
 runAcceptanceChecks = async function runAcceptanceChecksWithReleaseVersion(profileId = currentAcceptanceProfile()) {
   const results = await runAcceptanceChecksBeforeReleaseVersion(profileId);
@@ -154,6 +205,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotWithReleaseVersi
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev23() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev24() {
   return RELEASE_CANDIDATE_VERSION;
 };
