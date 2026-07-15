@@ -1,7 +1,96 @@
 "use strict";
 
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22";
+// Previous release marker retained for dev.22 baseline checks: RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22"
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.23";
 const MATH_RECOVERY_CACHE_ASSET = "./assets/v0.4.0/questions/questions-01-math-recovery.js";
+const PASS_ERROR_REASONS = [
+  "知らなかった",
+  "曖昧だった",
+  "混同した",
+  "計算・式ミス",
+  "形式の読み違い",
+  "時間切れ・勘"
+];
+const MAX_PRIORITY2_PER_SPRINT = 5;
+
+function questionExamPriority(question) {
+  const value = Number(question && (question.examPriority ?? 0));
+  return value === 2 ? 2 : value === 1 ? 1 : 0;
+}
+
+function orderQuestionsByExamPriority(questions) {
+  return [2, 1, 0].flatMap(priority =>
+    shuffle(questions.filter(question => questionExamPriority(question) === priority))
+  );
+}
+
+function uniqueQuestionsWithPriorityCap(groups, limit, maxPriority2 = MAX_PRIORITY2_PER_SPRINT) {
+  const seen = new Set();
+  const result = [];
+  let priority2Count = 0;
+
+  for (const group of groups) {
+    for (const question of group) {
+      if (!question || seen.has(question.id)) continue;
+      if (questionExamPriority(question) === 2 && priority2Count >= maxPriority2) continue;
+      seen.add(question.id);
+      result.push(question);
+      if (questionExamPriority(question) === 2) priority2Count += 1;
+      if (result.length >= limit) return result;
+    }
+  }
+
+  // 通常は優先度0/1で埋まりますが、候補不足時だけ優先度2の上限を緩めます。
+  if (result.length < limit) {
+    for (const group of groups) {
+      for (const question of group) {
+        if (!question || seen.has(question.id)) continue;
+        seen.add(question.id);
+        result.push(question);
+        if (result.length >= limit) return result;
+      }
+    }
+  }
+  return result;
+}
+
+examSprintQuestions = function examSprintQuestionsWithPassPriority(limit = 15) {
+  const eligible = examEligibleQuestions();
+  const due = orderQuestionsByExamPriority(eligible.filter(question => SRS[question.id] && SRS[question.id].due <= today0()));
+  const weak = orderQuestionsByExamPriority(eligible.filter(question => SRS[question.id] && (SRS[question.id].lapses || !SRS[question.id].lastCorrect)));
+  const unseen = orderQuestionsByExamPriority(eligible.filter(question => !SRS[question.id]));
+  const others = orderQuestionsByExamPriority(eligible);
+  return uniqueQuestionsWithPriorityCap(
+    [due, weak, unseen, others],
+    Math.min(limit, eligible.length),
+    Math.min(MAX_PRIORITY2_PER_SPRINT, limit)
+  );
+};
+
+function installPassErrorReasons(ok) {
+  if (ok) return;
+  const root = $("#reasons");
+  if (!root || !session || !session.lastLog) return;
+  root.innerHTML = PASS_ERROR_REASONS.map((reason, index) => `<button data-pass-error-reason="${index}">${esc(reason)}</button>`).join("");
+  root.querySelectorAll("button").forEach(button => {
+    button.onclick = async () => {
+      root.querySelectorAll("button").forEach(item => item.classList.remove("sel"));
+      button.classList.add("sel");
+      session.lastLog.errorReason = PASS_ERROR_REASONS[Number(button.dataset.passErrorReason)];
+      try {
+        await putOne("logs", session.lastLog);
+      } catch (error) {
+        toast("誤答原因を保存できませんでした：" + (error.message || error));
+      }
+    };
+  });
+}
+
+const renderFeedbackBeforePassPriority = renderFeedback;
+renderFeedback = function renderFeedbackWithPassPriority(question, ok) {
+  renderFeedbackBeforePassPriority(question, ok);
+  installPassErrorReasons(ok);
+};
 
 const runAcceptanceChecksBeforeReleaseVersion = runAcceptanceChecks;
 runAcceptanceChecks = async function runAcceptanceChecksWithReleaseVersion(profileId = currentAcceptanceProfile()) {
@@ -65,6 +154,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotWithReleaseVersi
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev22() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev23() {
   return RELEASE_CANDIDATE_VERSION;
 };
