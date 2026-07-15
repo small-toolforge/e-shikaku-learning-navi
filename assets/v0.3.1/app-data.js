@@ -1,5 +1,5 @@
 "use strict";
-const APP_VERSION="v0.3.1";
+const APP_VERSION="v0.4.0-dev.28";
 const DB_NAME="eshikaku_v1",DB_VER=1,DAY=86400000,ALLOWED_LAB_TAGS=new Set(["","sobel","pool","diff","video"]);
 let db,QUESTIONS=[],SRS={},LOGS=[],pendingQuestionBatch=null,session=null,cardTab="term";
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
