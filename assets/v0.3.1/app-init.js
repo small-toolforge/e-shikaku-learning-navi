@@ -67,10 +67,10 @@ async function init() {
   try {
     $("#hdrDate").textContent = new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" });
     await openDB();
-    await loadAppExtension("./assets/v0.4.0/questions/questions-02-machine-learning-recovery.js");
+    await loadAppExtension("./assets/v0.4.0/questions/questions-02-machine-learning-recovery.js?v=dev27");
     await seed();
     await loadAll();
-    await loadAppExtension("./assets/v0.4.0/pre-exam-review.js");
+    await loadAppExtension("./assets/v0.4.0/pre-exam-review.js?v=dev27");
     await renderHome();
   } catch (error) {
     $("#view-home").innerHTML = `<div class="card"><h2>初期化できませんでした</h2><div class="muted">${esc(error.message || error)}</div><button class="btn primary" onclick="location.reload()">再読み込み</button></div>`;
