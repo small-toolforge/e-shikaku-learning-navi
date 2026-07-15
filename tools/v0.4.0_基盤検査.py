@@ -157,7 +157,7 @@ def main() -> int:
     }
     all_ids = sum(ids.values(), [])
     answer_positions = Counter(int(x) for x in re.findall(r'\],\s*([0-3]),\s*\n\s*"', math_recovery_q))
-    incorrect_choice_count = math_recovery_q.count('"incorrect_choice"') - 1
+    incorrect_choice_count = math_recovery_q.count('"incorrect_choice"')
 
     all_card_source = "\n".join([math_cards, ml_cards, dl_cards, app_cards, dev_cards])
     all_card_ids = set(re.findall(r'(?:Term|Formula|Compare)\("([^"]+)"', all_card_source))
