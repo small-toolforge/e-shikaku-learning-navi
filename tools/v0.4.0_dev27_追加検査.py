@@ -20,6 +20,8 @@ EXPECTED_TOPICS = [
     "False Positive / False Negative",
     "Holdout / Validation / Test",
 ]
+RECOVERY_VERSIONED_URL = "./assets/v0.4.0/questions/questions-02-machine-learning-recovery.js?v=dev27"
+REVIEW_VERSIONED_URL = "./assets/v0.4.0/pre-exam-review.js?v=dev27"
 
 
 def main() -> int:
@@ -46,11 +48,14 @@ def main() -> int:
         "不適切選択問題を含む": 'questionPolarity: "incorrect_choice"' in recovery,
         "英語の読みと日本語訳を含む": all(token in recovery for token in ["フォールス・ポジティブ／偽陽性", "フォールス・ネガティブ／偽陰性", "バリデーション／検証", "テスト／最終評価"]),
         "Seed版11で4問を追加": 'seedVersion", value: 11' in init and "MACHINE_LEARNING_RECOVERY_QUESTIONS" in init,
-        "復旧問題をseed前に読込": init.index('questions-02-machine-learning-recovery.js') < init.index("await seed()"),
+        "復旧問題をseed前に読込": init.index(RECOVERY_VERSIONED_URL) < init.index("await seed()"),
         "既存問題を上書きしない": 'if (!await getOne("questions", question.id)) await putOne("questions", question)' in init,
         "232問セルフチェック": "確認問題232問" in review and "QUESTIONS.length === 232" in review,
         "Service Worker dev27": 'CACHE_NAME="eshikaku-atlas-v0.4.0-dev27"' in sw,
-        "復旧問題をオフラインキャッシュ": 'questions-02-machine-learning-recovery.js' in sw,
+        "復旧問題を版付きURLで読込": RECOVERY_VERSIONED_URL in init,
+        "5分レビューを版付きURLで読込": REVIEW_VERSIONED_URL in init,
+        "復旧問題の版付きURLをオフラインキャッシュ": RECOVERY_VERSIONED_URL in sw,
+        "5分レビューの版付きURLをオフラインキャッシュ": REVIEW_VERSIONED_URL in sw,
         "5分レビュー維持": "PRE_EXAM_REVIEW_LIMIT = 5" in review and "openPreExamReview" in review,
         "104問120分本番想定維持": all(token in release for token in ["FULL_EXAM_QUESTION_COUNT = 104", "FULL_EXAM_MINUTES = 120", "FULL_EXAM_WARNING_MINUTES = 15"]),
         "誤答原因6分類維持": all(reason in release for reason in ["知らなかった", "曖昧だった", "混同した", "計算・式ミス", "形式の読み違い", "時間切れ・勘"]),
