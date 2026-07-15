@@ -1,5 +1,6 @@
 /* E資格 学習ナビ - Service Worker v0.4.0 development */
-const CACHE_NAME="eshikaku-atlas-v0.4.0-dev22";
+// Previous cache generation retained for dev.22 baseline checks: v0.4.0-dev22
+const CACHE_NAME="eshikaku-atlas-v0.4.0-dev23";
 const ASSETS=[
   "./",
   "./index.html",
