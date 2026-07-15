@@ -49,7 +49,7 @@ def main() -> int:
         "表示版dev.28": 'PRE_EXAM_REVIEW_VERSION = "v0.4.0-dev.28"' in review,
         "240問セルフチェック": "確認問題240問" in review and "QUESTIONS.length === 240" in review,
         "Seed版12": 'seedVersion", value: 12' in init and "PASS_RECOVERY_QUESTIONS" in init,
-        "Service Worker dev28": 'CACHE_NAME="eshikaku-atlas-v0.4.0-dev28"' in sw,
+        "Service Worker cache dev29": 'CACHE_NAME="eshikaku-atlas-v0.4.0-dev29"' in sw,
         "動的読込URLをdev28へ統一": all(url in init for url in DEV28_URLS),
         "PWAキャッシュURLをdev28へ統一": all(url in sw for url in DEV28_URLS),
         "dev27動的URLが残っていない": "?v=dev27" not in init and "?v=dev27" not in sw,
