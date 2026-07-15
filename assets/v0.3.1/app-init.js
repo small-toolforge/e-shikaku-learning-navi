@@ -44,12 +44,26 @@ async function seed() {
   if (version < 10) await putOne("meta", { key: "seedVersion", value: 10, at: Date.now() });
 }
 
+function loadAppExtension(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-app-extension="${src}"]`);
+    if (existing) return resolve();
+    const script = document.createElement("script");
+    script.src = src;
+    script.dataset.appExtension = src;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`追加機能を読み込めませんでした: ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
 async function init() {
   try {
     $("#hdrDate").textContent = new Date().toLocaleDateString("ja-JP", { month: "long", day: "numeric", weekday: "short" });
     await openDB();
     await seed();
     await loadAll();
+    await loadAppExtension("./assets/v0.4.0/pre-exam-review.js");
     await renderHome();
   } catch (error) {
     $("#view-home").innerHTML = `<div class="card"><h2>初期化できませんでした</h2><div class="muted">${esc(error.message || error)}</div><button class="btn primary" onclick="location.reload()">再読み込み</button></div>`;
