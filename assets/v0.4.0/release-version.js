@@ -1,7 +1,7 @@
 "use strict";
 
 // Previous release marker retained for dev.22 baseline checks: RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22"
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.24";
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.25";
 const MATH_RECOVERY_CACHE_ASSET = "./assets/v0.4.0/questions/questions-01-math-recovery.js";
 const PASS_ERROR_REASONS = [
   "知らなかった",
@@ -13,6 +13,9 @@ const PASS_ERROR_REASONS = [
 ];
 const MAX_PRIORITY2_PER_SPRINT = 5;
 const PASS_EXAM_DATE = new Date(2026, 7, 29);
+const FULL_EXAM_QUESTION_COUNT = 104;
+const FULL_EXAM_MINUTES = 120;
+const FULL_EXAM_WARNING_MINUTES = 15;
 
 function questionExamPriority(question) {
   const value = Number(question && (question.examPriority ?? 0));
@@ -128,6 +131,77 @@ function passWeakTopHtml() {
   }).join("")}</ul>`;
 }
 
+function fullExamQuestions(limit = FULL_EXAM_QUESTION_COUNT) {
+  return shuffle(examEligibleQuestions()).slice(0, Math.min(limit, examEligibleQuestions().length));
+}
+
+function startFullExamList(list, title = `本番想定${FULL_EXAM_QUESTION_COUNT}問・${FULL_EXAM_MINUTES}分`) {
+  startExamSession(list, title, FULL_EXAM_MINUTES);
+  if (!session) return;
+  session.fullExamMode = true;
+  session.examWarningMinutes = FULL_EXAM_WARNING_MINUTES;
+  session.examWarningShown = false;
+  renderQuestion();
+}
+
+function startFullExamSimulation() {
+  const list = fullExamQuestions(FULL_EXAM_QUESTION_COUNT);
+  if (list.length < FULL_EXAM_QUESTION_COUNT) {
+    toast(`本番想定には${FULL_EXAM_QUESTION_COUNT}問必要ですが、出題対象は${list.length}問です`);
+    return;
+  }
+  startFullExamList(list);
+}
+
+const updateExamTimerDisplayBeforeFullExam = updateExamTimerDisplay;
+updateExamTimerDisplay = function updateExamTimerDisplayWithFullWarning() {
+  const activeSession = session;
+  const isFullExam = Boolean(activeSession && activeSession.examMode && activeSession.fullExamMode && activeSession.examDeadline && !activeSession.examExpired);
+  const remaining = isFullExam ? Math.max(0, activeSession.examDeadline - Date.now()) : null;
+  updateExamTimerDisplayBeforeFullExam();
+  if (!isFullExam || !session || session !== activeSession) return;
+
+  const threshold = FULL_EXAM_WARNING_MINUTES * 60 * 1000;
+  if (remaining <= threshold && remaining > 0) {
+    const timerBox = $("#examTimerBox");
+    if (timerBox) timerBox.classList.add("warning");
+    if (!session.examWarningShown) {
+      session.examWarningShown = true;
+      toast(`残り${FULL_EXAM_WARNING_MINUTES}分です。未回答を残さないことを優先してください`);
+    }
+  }
+};
+
+const injectExamTimerBeforeFullExam = injectExamTimer;
+injectExamTimer = function injectExamTimerWithFullExamLabel() {
+  injectExamTimerBeforeFullExam();
+  if (!session || !session.examMode) return;
+  const label = $("#examTimerBox .exam-timer-main span");
+  if (label) label.textContent = session.fullExamMode ? `本番想定 ${FULL_EXAM_QUESTION_COUNT}問・${FULL_EXAM_MINUTES}分` : "試験直前モード";
+  if (session.fullExamMode && session.examDeadline - Date.now() <= FULL_EXAM_WARNING_MINUTES * 60 * 1000 && session.examDeadline > Date.now()) {
+    const timerBox = $("#examTimerBox");
+    if (timerBox) timerBox.classList.add("warning");
+  }
+};
+
+const renderExamResultBeforeFullExam = renderExamResult;
+renderExamResult = function renderExamResultWithFullExam(finished) {
+  const fullExam = Boolean(finished && finished.fullExamMode);
+  renderExamResultBeforeFullExam(finished);
+  if (!fullExam) return;
+  const heading = $("#view-quiz .exam-result-card h2");
+  if (heading) heading.textContent = "本番想定モードの結果";
+  const retry = $("#examResultRetry");
+  if (retry) retry.onclick = () => startFullExamList(finished.list, finished.title);
+};
+
+const bindExamModeActionsBeforeFullExam = bindExamModeActions;
+bindExamModeActions = function bindExamModeActionsWithFullExam(root) {
+  bindExamModeActionsBeforeFullExam(root);
+  const full = root.querySelector('[data-exam-action="full"]');
+  if (full) full.onclick = startFullExamSimulation;
+};
+
 const examModePanelHtmlBeforePassDashboard = examModePanelHtml;
 examModePanelHtml = function examModePanelHtmlWithPassDashboard() {
   return `<div class="card exam-mode-card">
@@ -137,6 +211,10 @@ examModePanelHtml = function examModePanelHtmlWithPassDashboard() {
     <div class="label">今日の15分メニュー</div>
     <button class="btn primary" data-exam-action="sprint">今日の15分メニューを始める</button>
     <div class="muted">復習期限 → 弱点 → 未学習の順を保ち、過去出題・弱点テーマを優先します。</div>
+    <hr class="divider">
+    <div class="label">本番想定</div>
+    <button class="btn ghost" data-exam-action="full">104問・120分の本番想定を始める</button>
+    <div class="muted">出題対象から104問を重複なしで抽出し、残り15分で一度だけ通知します。</div>
     <hr class="divider">
     <h3>弱点上位3件</h3>
     ${passWeakTopHtml()}
@@ -205,6 +283,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotWithReleaseVersi
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev24() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev25() {
   return RELEASE_CANDIDATE_VERSION;
 };
