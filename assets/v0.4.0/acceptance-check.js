@@ -22,6 +22,7 @@ const ACCEPTANCE_CACHE_ASSETS = [
   "./assets/v0.4.0/application-atlas-data.js",
   "./assets/v0.4.0/cards/cards-01-math.js",
   "./assets/v0.4.0/questions/questions-01-math.js",
+  "./assets/v0.4.0/questions/questions-04-deep-learning-application.js",
   "./assets/v0.4.0/card-progress.js",
   "./assets/v0.4.0/exam-mode.js",
   "./assets/v0.4.0/acceptance-check.js",
@@ -180,7 +181,7 @@ async function runAcceptanceChecks(profileId = currentAcceptanceProfile()) {
   const results = [
     acceptanceResult("表示版", ACCEPTANCE_CHECK_VERSION === "v0.4.0-dev.19", ACCEPTANCE_CHECK_VERSION),
     acceptanceResult("シラバスカード438枚", cards.length === 438, `${cards.length}枚`),
-    acceptanceResult("確認問題174問", QUESTIONS.length === 174, `${QUESTIONS.length}問`),
+    acceptanceResult("確認問題204問", QUESTIONS.length === 204, `${QUESTIONS.length}問`),
     acceptanceResult("図解16件", atlasCountForAcceptance() === 16, `${atlasCountForAcceptance()}件`),
     acceptanceResult("問題ID重複なし", questionDuplicates.length === 0, questionDuplicates.join(", ")),
     acceptanceResult("カードID重複なし", cardDuplicates.length === 0, cardDuplicates.join(", ")),

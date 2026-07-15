@@ -119,8 +119,17 @@ function endSession() {
   nav("home");
 }
 
+function ensureChoiceOrder(q) {
+  if (session.choiceOrderQuestionId !== q.id || !Array.isArray(session.choiceOrder)) {
+    session.choiceOrderQuestionId = q.id;
+    session.choiceOrder = shuffle([...Array(q.choices.length).keys()]);
+  }
+  return session.choiceOrder;
+}
+
 function renderQuestion() {
   const q = session.list[session.idx];
+  const choiceOrder = ensureChoiceOrder(q);
   session.selected = null;
   session.confidence = null;
   session.startedAt = Date.now();
@@ -131,7 +140,7 @@ function renderQuestion() {
       <div><span class="tag">${esc(q.category)}</span><span class="tag">${esc(q.topic)}</span><span class="tag">${esc(q.difficulty || "")}</span></div>
       ${q.code ? `<pre>${esc(q.code)}</pre>` : ""}
       <p><b>Q. ${esc(q.question)}</b></p>
-      <div id="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}"><span class="abc">${String.fromCharCode(65 + i)}</span>${esc(c)}</button>`).join("")}</div>
+      <div id="choices">${choiceOrder.map((orig, disp) => `<button class="choice" data-i="${orig}"><span class="abc">${String.fromCharCode(65 + disp)}</span>${esc(q.choices[orig])}</button>`).join("")}</div>
       <div class="label">自信度</div>
       <div class="confbar" id="confidence"><button data-c="0">低い</button><button data-c="1">普通</button><button data-c="2">高い</button></div>
       <button class="btn primary" id="grade" disabled>採点する</button>
@@ -232,6 +241,7 @@ function renderFeedback(q, ok) {
     const f = FORMULAS.find(x => x.name === name);
     return f ? `<hr class="divider"><div class="fx">${esc(f.fx)}</div><div class="label">読み方</div><div>${esc(f.yomi)}</div><div class="label">覚え方</div><div>${esc(f.oboe)}</div>` : "";
   }).join("");
+  const choiceOrder = ensureChoiceOrder(q);
 
   $("#view-quiz").innerHTML = `<div class="muted">${esc(session.title)} ${session.idx + 1}/${session.list.length}</div>
     <div class="card">
@@ -239,7 +249,7 @@ function renderFeedback(q, ok) {
       <div style="text-align:center;color:var(--shu);font-weight:700">${ok ? "正解" : "不正解"}</div>
       <p><b>Q. ${esc(q.question)}</b></p>
       ${q.code ? `<pre>${esc(q.code)}</pre>` : ""}
-      ${q.choices.map((c, i) => `<button class="choice ${i === q.answer ? "correct" : i === session.selected ? "wrong" : ""}" disabled><span class="abc">${String.fromCharCode(65 + i)}</span>${esc(c)}</button>`).join("")}
+      ${choiceOrder.map((orig, disp) => `<button class="choice ${orig === q.answer ? "correct" : orig === session.selected ? "wrong" : ""}" disabled><span class="abc">${String.fromCharCode(65 + disp)}</span>${esc(q.choices[orig])}</button>`).join("")}
       <div class="label">解説</div><div>${esc(q.explanation || "")}</div>
       ${sourceCards(q)}${terms}${formulas}
       ${ok ? "" : `<div class="label">誤答の原因</div><div class="reasons" id="reasons">${ERROR_REASONS.map((r, i) => `<button data-r="${i}">${esc(r)}</button>`).join("")}</div>`}
@@ -268,11 +278,12 @@ function renderFeedback(q, ok) {
 }
 
 function copyPrompt(q, ok) {
+  const choiceOrder = ensureChoiceOrder(q);
   const text = `E資格の復習です。
 分野：${q.category} / ${q.topic}
 問題：${q.question}
 選択肢：
-${q.choices.map((c, i) => `${String.fromCharCode(65 + i)}. ${c}`).join("\n")}
+${choiceOrder.map((orig, disp) => `${String.fromCharCode(65 + disp)}. ${q.choices[orig]}`).join("\n")}
 私の回答：${q.choices[session.selected]}
 正答：${q.choices[q.answer]}
 結果：${ok ? "正解" : "不正解"}

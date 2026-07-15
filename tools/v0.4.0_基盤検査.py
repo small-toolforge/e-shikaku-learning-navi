@@ -34,6 +34,7 @@ SCRIPTS = [
     "assets/v0.4.0/questions/questions-01-math.js",
     "assets/v0.4.0/questions/questions-02-machine-learning.js",
     "assets/v0.4.0/questions/questions-03-deep-learning-base.js",
+    "assets/v0.4.0/questions/questions-04-deep-learning-application.js",
     "assets/v0.4.0/questions/questions-05-development-operations.js",
     "assets/v0.4.0/question-reference-repair.js",
     "assets/v0.4.0/questions/question-links.js",
@@ -99,6 +100,7 @@ def main() -> int:
         math_q = read("assets/v0.4.0/questions/questions-01-math.js")
         ml_q = read("assets/v0.4.0/questions/questions-02-machine-learning.js")
         dl_q = read("assets/v0.4.0/questions/questions-03-deep-learning-base.js")
+        dla_q = read("assets/v0.4.0/questions/questions-04-deep-learning-application.js")
         dev_q = read("assets/v0.4.0/questions/questions-05-development-operations.js")
         repair = read("assets/v0.4.0/question-reference-repair.js")
         links = read("assets/v0.4.0/questions/question-links.js")
@@ -130,6 +132,7 @@ def main() -> int:
         "math": re.findall(r'"(math-q\d{3})"', math_q),
         "ml": re.findall(r'"(ml-q\d{3})"', ml_q),
         "dl": re.findall(r'"(dl-q\d{3})"', dl_q),
+        "dla": re.findall(r'"(dla-q\d{3})"', dla_q),
         "dev": re.findall(r'"(devops-q\d{3})"', dev_q),
     }
     all_ids = sum(ids.values(), [])
@@ -150,13 +153,15 @@ def main() -> int:
         "数学24問": len(ids["math"]) == 24 and len(set(ids["math"])) == 24,
         "機械学習36問": len(ids["ml"]) == 36 and len(set(ids["ml"])) == 36,
         "深層学習基礎46問": len(ids["dl"]) == 46 and len(set(ids["dl"])) == 46,
+        "深層学習応用30問": len(ids["dla"]) == 30 and len(set(ids["dla"])) == 30,
         "開発運用22問": len(ids["dev"]) == 22 and len(set(ids["dev"])) == 22,
         "追加問題ID重複なし": len(all_ids) == len(set(all_ids)),
         "数学3問の参照修復": repaired_question_ids == {"math-q010", "math-q016", "math-q024"},
         "修復先カードIDがすべて存在": bool(repair_target_ids) and repair_target_ids <= all_card_ids,
         "参照修復を問題統合前に実行": inspector.scripts.index("assets/v0.4.0/question-reference-repair.js") < inspector.scripts.index("assets/v0.4.0/questions/question-links.js"),
-        "問題統合": all(x in links for x in ["...MATH_QUESTIONS", "...MACHINE_LEARNING_QUESTIONS", "...DEEP_LEARNING_BASE_QUESTIONS", "...DEVELOPMENT_OPERATIONS_QUESTIONS"]),
+        "問題統合": all(x in links for x in ["...MATH_QUESTIONS", "...MACHINE_LEARNING_QUESTIONS", "...DEEP_LEARNING_BASE_QUESTIONS", "...DEEP_LEARNING_APPLICATION_QUESTIONS", "...DEVELOPMENT_OPERATIONS_QUESTIONS"]),
         "Seed版8で既存端末を修復": 'seedVersion", value: 8' in init and all(x in init for x in ["math-q010", "math-q016", "math-q024", 'await putOne("questions", question)']),
+        "Seed版9で深層学習応用を追加": 'seedVersion", value: 9' in init and "DEEP_LEARNING_APPLICATION_QUESTIONS" in init,
         "カード理解度3段階": all(x in progress for x in ["苦手", "曖昧", "覚えた", "CARD_PROGRESS_INTERVALS"]),
         "カード理解度JSON互換": "cardProgress: Object.values(CARD_PROGRESS)" in progress and "validated.cardProgress == null" in progress,
         "出題範囲3状態": all(x in scope for x in ["出題対象", "オプション（出題対象外）", "出題対象・オプション混在"]),
@@ -178,15 +183,15 @@ def main() -> int:
         "ホーム・学習画面へ追加": "renderHomeWithExamMode" in exam and "renderStudyWithExamMode" in exam,
         "試験直前スマホUI": all(x in exam_css for x in [".exam-timer", ".exam-finish", ".exam-result-card", "@media(max-width:600px)"]),
         "受け入れ基盤を維持": 'ACCEPTANCE_CHECK_VERSION = "v0.4.0-dev.19"' in acceptance,
-        "最新版v0.4.0-dev.20を統一表示": 'RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.20"' in release_version and "runAcceptanceChecksWithReleaseVersion" in release_version and "buildAcceptanceSnapshotWithReleaseVersion" in release_version,
+        "最新版v0.4.0-dev.21を統一表示": 'RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.21"' in release_version and "runAcceptanceChecksWithReleaseVersion" in release_version and "buildAcceptanceSnapshotWithReleaseVersion" in release_version,
         "標準・PWA・オフライン3プロファイル": all(x in acceptance for x in ['standard:', 'pwa:', '"pwa-offline":', "確認プロファイル"]),
         "標準13項目を維持": "通信状態取得" in acceptance and "Service Worker登録" in acceptance,
         "PWA起動確認": "ホーム画面PWA起動" in acceptance and "standalone-pwa" in acceptance,
         "Service Worker制御確認": "serviceWorkerControlProbe" in acceptance and "navigator.serviceWorker.controller" in acceptance,
-        "主要教材CacheStorage確認": "cacheStorageProbe" in acceptance and "ACCEPTANCE_CACHE_ASSETS" in acceptance and "caches.match" in acceptance and "backup-import.js" in acceptance,
+        "主要教材CacheStorage確認": "cacheStorageProbe" in acceptance and "ACCEPTANCE_CACHE_ASSETS" in acceptance and "caches.match" in acceptance and "questions-04-deep-learning-application.js" in acceptance and "backup-import.js" in acceptance,
         "タッチ・Secure Context確認": all(x in acceptance for x in ["touchProbe", "maxTouchPoints", "Secure Context"]),
         "オフライン状態確認": 'profileId === "pwa-offline"' in acceptance and "オフライン状態" in acceptance,
-        "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題174問", "図解16件"]),
+        "実行時件数確認": all(x in acceptance for x in ["シラバスカード438枚", "確認問題204問", "図解16件"]),
         "実行時ID重複確認": "duplicateIds" in acceptance and "問題ID重複なし" in acceptance and "カードID重複なし" in acceptance,
         "実行時相互参照確認": "問題→カード参照" in acceptance and "カード→問題参照" in acceptance,
         "IndexedDB非破壊プローブ": "indexedDbProbe" in acceptance and "delete(key)" in acceptance,
@@ -216,8 +221,8 @@ def main() -> int:
         (ok if f"./{rel}" in sw else ng).append(
             f"Service Worker対象: {rel}" if f"./{rel}" in sw else f"Service Worker対象から欠落: {rel}"
         )
-    (ok if "v0.4.0-dev20" in sw else ng).append(
-        "Service Workerキャッシュ世代: v0.4.0-dev20" if "v0.4.0-dev20" in sw else "Service Workerキャッシュ世代がv0.4.0-dev20ではありません"
+    (ok if "v0.4.0-dev21" in sw else ng).append(
+        "Service Workerキャッシュ世代: v0.4.0-dev21" if "v0.4.0-dev21" in sw else "Service Workerキャッシュ世代がv0.4.0-dev21ではありません"
     )
 
     node = shutil.which("node")
@@ -233,7 +238,7 @@ def main() -> int:
 
     ok.append("図解総数: 16件")
     ok.append("シラバス拡充カード: 438枚")
-    ok.append("問題総数: 174問")
+    ok.append("問題総数: 204問")
     ok.append("試験直前結果: 回答済みだけを集計し、途中終了・時間終了・全問完了を区別")
     ok.append("学習データ読込: 統合読込＋問題教材を保持する学習状態置換")
     ok.append("受け入れプロファイル: 標準13項目・PWA18項目・PWAオフライン19項目")
