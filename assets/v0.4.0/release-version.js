@@ -1,6 +1,7 @@
 "use strict";
 
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.21";
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22";
+const MATH_RECOVERY_CACHE_ASSET = "./assets/v0.4.0/questions/questions-01-math-recovery.js";
 
 const runAcceptanceChecksBeforeReleaseVersion = runAcceptanceChecks;
 runAcceptanceChecks = async function runAcceptanceChecksWithReleaseVersion(profileId = currentAcceptanceProfile()) {
@@ -9,6 +10,30 @@ runAcceptanceChecks = async function runAcceptanceChecksWithReleaseVersion(profi
   if (versionResult) {
     versionResult.passed = true;
     versionResult.detail = RELEASE_CANDIDATE_VERSION;
+  }
+
+  const questionResult = results.find(result => result.name.indexOf("確認問題") === 0);
+  if (questionResult) {
+    questionResult.name = "確認問題228問";
+    questionResult.passed = QUESTIONS.length === 228;
+    questionResult.detail = `${QUESTIONS.length}問`;
+  }
+
+  if (profileId === "pwa" || profileId === "pwa-offline") {
+    let cached = false;
+    if ("caches" in window) {
+      try {
+        const url = new URL(MATH_RECOVERY_CACHE_ASSET, location.href).href;
+        cached = Boolean(await caches.match(url));
+      } catch (error) {
+        console.warn("Math recovery cache acceptance probe failed", error);
+      }
+    }
+    results.push(acceptanceResult(
+      "応用数学復旧問題のCacheStorage",
+      cached,
+      cached ? "利用可能" : "未保存"
+    ));
   }
   return results;
 };
@@ -40,6 +65,6 @@ downloadAcceptanceSnapshot = function downloadAcceptanceSnapshotWithReleaseVersi
   toast("受け入れ結果JSONを保存しました");
 };
 
-currentCardsDisplayVersion = function currentCardsDisplayVersionDev21() {
+currentCardsDisplayVersion = function currentCardsDisplayVersionDev22() {
   return RELEASE_CANDIDATE_VERSION;
 };
