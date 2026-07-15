@@ -63,7 +63,7 @@ def main() -> int:
             'pre-exam-review.js?v=dev28',
         ]),
         "240問セルフチェック": "確認問題240問" in review and "QUESTIONS.length === 240" in review,
-        "Service Worker dev28": 'CACHE_NAME="eshikaku-atlas-v0.4.0-dev28"' in sw,
+        "Service Worker cache dev29": 'CACHE_NAME="eshikaku-atlas-v0.4.0-dev29"' in sw,
         "dev28版URLをオフラインキャッシュ": all(token in sw for token in [
             'questions-02-machine-learning-recovery.js?v=dev28',
             'questions-06-pass-recovery.js?v=dev28',

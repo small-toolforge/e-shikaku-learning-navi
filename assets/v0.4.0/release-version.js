@@ -1,7 +1,7 @@
 "use strict";
 
 // Previous release marker retained for dev.22 baseline checks: RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.22"
-const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.25";
+const RELEASE_CANDIDATE_VERSION = "v0.4.0-dev.28";
 const MATH_RECOVERY_CACHE_ASSET = "./assets/v0.4.0/questions/questions-01-math-recovery.js";
 const PASS_ERROR_REASONS = [
   "知らなかった",
