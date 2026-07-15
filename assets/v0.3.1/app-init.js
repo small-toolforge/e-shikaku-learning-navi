@@ -36,6 +36,12 @@ async function seed() {
     }
   }
   if (version < 9) await putOne("meta", { key: "seedVersion", value: 9, at: Date.now() });
+  if (version < 10 && typeof MATH_RECOVERY_QUESTIONS !== "undefined") {
+    for (const question of MATH_RECOVERY_QUESTIONS) {
+      if (!await getOne("questions", question.id)) await putOne("questions", question);
+    }
+  }
+  if (version < 10) await putOne("meta", { key: "seedVersion", value: 10, at: Date.now() });
 }
 
 async function init() {
